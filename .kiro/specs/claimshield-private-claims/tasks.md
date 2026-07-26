@@ -91,7 +91,7 @@
   - _Boundary: ClaimShield React Hook_
 
 - [ ] 5. 利用者の役割ごとに ClaimShield 画面を実装する
-- [ ] 5.1 管理者の policy 作成と公開 policy 表示を実装する
+- [x] 5.1 管理者の policy 作成と公開 policy 表示を実装する
   - 管理者が policy 条件を作成し、全閲覧者に条件、状態、申請数、承認数、固定給付予定総額を表示する。
   - device time による期間前・期間後の注意を表示するが、受付可否は公開 `PolicyState` だけで判定する。
   - 無効な policy 入力が field guidance を表示して deploy を行わない状態が完了条件である。
