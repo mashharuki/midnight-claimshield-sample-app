@@ -3,7 +3,7 @@
 この計画は generated binding と ZK 資産を明示的な前提とする直列実行であり、並列実行マーカーは使用しない。
 
 - [ ] 1. 再現可能な実行環境を整える
-- [ ] 1.1 Dev Container と host の Bun 実行環境を ClaimShield に整合させる
+- [x] 1.1 Dev Container と host の Bun 実行環境を ClaimShield に整合させる
   - root `packageManager` を唯一の Bun バージョン基準にし、Dev Container の表示名と環境値を ClaimShield 用に更新する。
   - host 手順で必要になる Compact、Docker、Compose の前提を設定値として検証できる状態にする。
   - Dev Container 内と host のどちらでも要求 Bun バージョンを確認できる状態が完了条件である。

@@ -2,13 +2,14 @@ FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 
 ARG TARGETARCH
 ARG NODE_VERSION=23.3.0
-ARG BUN_VERSION=1.3.13
 ARG DOCKER_CLI_VERSION=27.4.0
 ARG DOCKER_COMPOSE_VERSION=2.29.7
 ARG COMPACT_WRAPPER_VERSION=0.2.0
 ARG COMPACTC_VERSION=0.30.0
 
 ENV DEBIAN_FRONTEND=noninteractive
+
+COPY package.json /tmp/claimshield-package.json
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -25,12 +26,10 @@ RUN set -eux; \
     case "${TARGETARCH}" in \
         "amd64") \
             NODE_ARCH="x64"; \
-            BUN_ARCH="x64"; \
             DOCKER_ARCH="x86_64"; \
             ;; \
         "arm64") \
             NODE_ARCH="arm64"; \
-            BUN_ARCH="aarch64"; \
             DOCKER_ARCH="aarch64"; \
             ;; \
         *) \
@@ -45,6 +44,7 @@ RUN set -eux; \
     npm --version
 
 RUN set -eux; \
+    BUN_VERSION="$(node -e 'const manifest = require("/tmp/claimshield-package.json"); const match = /^bun@(.+)$/.exec(manifest.packageManager ?? ""); if (!match) process.exit(1); process.stdout.write(match[1]);')"; \
     case "${TARGETARCH}" in \
         "amd64") BUN_ARCH="x64" ;; \
         "arm64") BUN_ARCH="aarch64" ;; \
@@ -57,7 +57,7 @@ RUN set -eux; \
     unzip -q /tmp/bun.zip -d /tmp; \
     install -m 0755 "/tmp/bun-linux-${BUN_ARCH}/bun" /usr/local/bin/bun; \
     rm -rf /tmp/bun.zip "/tmp/bun-linux-${BUN_ARCH}"; \
-    bun --version | grep -F "${BUN_VERSION}"
+    test "$(bun --version)" = "${BUN_VERSION}"
 
 RUN set -eux; \
     case "${TARGETARCH}" in \
