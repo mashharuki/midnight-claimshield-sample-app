@@ -7,6 +7,11 @@ import {
   type PolicyInput,
   PolicyState,
 } from "shared";
+import {
+  AdministratorReview,
+  publicClaimsForReview,
+} from "@/components/ClaimShield/AdministratorReview";
+import { ClaimRedemption } from "@/components/ClaimShield/ClaimRedemption";
 import { PrivateClaimSubmission } from "@/components/ClaimShield/PrivateClaimSubmission";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { NetworkToggle } from "@/components/NetworkToggle";
@@ -277,14 +282,38 @@ function TransactionProgress({
     idle: "",
   } as const;
   const isBusy = isClaimTransactionInFlight(stage);
-  const message =
-    operation === "submit"
-      ? {
-          ...messages,
-          confirming: "Indexer で公開申請状態を確認中です。",
-          succeeded: "秘密申請を記録しました。公開画面には明細を表示しません。",
-        }[stage]
-      : messages[stage];
+  const message = (() => {
+    if (operation === "submit") {
+      return {
+        ...messages,
+        confirming: "Indexer で公開申請状態を確認中です。",
+        succeeded: "秘密申請を記録しました。公開画面には明細を表示しません。",
+      }[stage];
+    }
+    if (operation === "close") {
+      return {
+        ...messages,
+        confirming: "Indexer で受付終了の公開状態を確認中です。",
+        succeeded: "新規申請の受付終了を記録しました。",
+      }[stage];
+    }
+    if (operation === "review") {
+      return {
+        ...messages,
+        confirming: "Indexer で審査結果の公開状態を確認中です。",
+        succeeded:
+          "審査結果を記録しました。取消理由は ClaimShield に保存していません。",
+      }[stage];
+    }
+    if (operation === "redeem") {
+      return {
+        ...messages,
+        confirming: "Indexer で引換済みの資格記録を確認中です。",
+        succeeded: "一回限りの資格記録を完了しました。資産送付は行いません。",
+      }[stage];
+    }
+    return messages[stage];
+  })();
 
   return (
     <div
@@ -410,6 +439,10 @@ export function PolicyWorkspace() {
     deployPolicy,
     joinPolicy,
     submitClaim,
+    closePolicy,
+    approveClaim,
+    rejectClaim,
+    redeemClaim,
   } = useClaimShield();
   const [draft, setDraft] = useState<PolicyDraft>(emptyDraft);
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -419,6 +452,7 @@ export function PolicyWorkspace() {
   const errors = useMemo(() => validatePolicyDraft(draft), [draft]);
   const isBusy = isClaimTransactionInFlight(transaction.stage);
   const publicPolicy = ledger ? toPublicPolicyView(ledger) : null;
+  const publicReviewClaims = ledger ? publicClaimsForReview(ledger.claims) : [];
 
   const updateDraft = (field: keyof PolicyDraft, value: string) => {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -481,24 +515,46 @@ export function PolicyWorkspace() {
                 stage={transaction.stage}
                 error={transaction.error}
               />
-              {readError && (
+              {readError && readError.kind !== "privateState" && (
                 <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                   公開状態を取得できませんでした。ネットワークと Lace Wallet
                   の接続を確認して再試行してください。
                 </p>
               )}
             </div>
-            <PrivateClaimSubmission
-              minimumAmount={publicPolicy.minimumAmount}
-              maximumAmount={publicPolicy.maximumAmount}
-              policyIsOpen={publicPolicy.isOpen}
-              isWalletConnected={isWalletConnected}
-              requiresWalletConnection={requiresWalletConnection}
-              personalClaim={personalClaim}
-              transaction={transaction}
-              connectWallet={connectWallet}
-              submitClaim={submitClaim}
-            />
+            <div className="space-y-6">
+              <PrivateClaimSubmission
+                minimumAmount={publicPolicy.minimumAmount}
+                maximumAmount={publicPolicy.maximumAmount}
+                policyIsOpen={publicPolicy.isOpen}
+                isWalletConnected={isWalletConnected}
+                requiresWalletConnection={requiresWalletConnection}
+                personalClaim={personalClaim}
+                transaction={transaction}
+                connectWallet={connectWallet}
+                submitClaim={submitClaim}
+              />
+              <AdministratorReview
+                policyIsOpen={publicPolicy.isOpen}
+                claims={publicReviewClaims}
+                isWalletConnected={isWalletConnected}
+                requiresWalletConnection={requiresWalletConnection}
+                transaction={transaction}
+                connectWallet={connectWallet}
+                closePolicy={closePolicy}
+                approveClaim={approveClaim}
+                rejectClaim={rejectClaim}
+              />
+              <ClaimRedemption
+                personalClaim={personalClaim}
+                readError={readError}
+                transaction={transaction}
+                isWalletConnected={isWalletConnected}
+                requiresWalletConnection={requiresWalletConnection}
+                connectWallet={connectWallet}
+                redeemClaim={redeemClaim}
+              />
+            </div>
           </div>
         ) : (
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)]">

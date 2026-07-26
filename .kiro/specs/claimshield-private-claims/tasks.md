@@ -90,7 +90,7 @@
   - _Requirements: 1.3, 2.1, 3.3, 3.4, 3.5, 5.1, 6.4, 7.1, 7.2, 8.1, 8.2, 8.3_
   - _Boundary: ClaimShield React Hook_
 
-- [ ] 5. 利用者の役割ごとに ClaimShield 画面を実装する
+- [x] 5. 利用者の役割ごとに ClaimShield 画面を実装する
 - [x] 5.1 管理者の policy 作成と公開 policy 表示を実装する
   - 管理者が policy 条件を作成し、全閲覧者に条件、状態、申請数、承認数、固定給付予定総額を表示する。
   - device time による期間前・期間後の注意を表示するが、受付可否は公開 `PolicyState` だけで判定する。
@@ -105,14 +105,14 @@
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 4.2, 7.2, 7.3, 7.4, 8.2, 8.3_
   - _Boundary: ClaimShield Applicant Submission View_
 
-- [ ] 5.3 管理者の受付終了と審査画面を実装する
+- [x] 5.3 管理者の受付終了と審査画面を実装する
   - 管理者だけが policy を閉じ、submitted claim を承認または取消できるようにする。
   - 審査資料は dApp 外で確認する注意を表示し、取消操作は非空の理由入力を要求するが、その値を ClaimShield へ送信・保存しない。
   - 判断済み claim の操作が無効化され、理由なしでは取消を開始できない状態が完了条件である。
   - _Requirements: 2.1, 2.2, 2.3, 5.1, 5.2, 5.3, 5.4, 7.1, 7.2, 8.2, 8.3_
   - _Boundary: ClaimShield Administrator Review View_
 
-- [ ] 5.4 申請者の引換画面を実装する
+- [x] 5.4 申請者の引換画面を実装する
   - approved claim のみ引換操作を提供し、private payload がない場合は復元にバックアップが必要であることを表示する。
   - 引換完了時は送金ではなく資格記録の完了として表示し、redeemed claim を再実行不可にする。
   - approved かつローカル秘密値がある claim だけが引換可能になる状態が完了条件である。
