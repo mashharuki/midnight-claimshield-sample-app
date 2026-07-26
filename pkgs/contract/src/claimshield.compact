@@ -91,6 +91,14 @@ circuit require_policy_open(): [] {
   assert(policy_state == PolicyState.open, "Policy is closed to new claims");
 }
 
+circuit require_submitted_claim(claimant_key: Bytes<32>): [] {
+  assert(claims.member(claimant_key), "Claim does not exist");
+  assert(
+    claims.lookup(claimant_key) == ClaimStatus.submitted,
+    "Claim has already been decided"
+  );
+}
+
 constructor(
   label: Bytes<32>,
   category: Bytes<32>,
@@ -183,4 +191,55 @@ export circuit submit_claim(): [] {
   commitments.insert(public_claimant_key, disclose(commitment));
   used_receipt_nullifiers.insert(public_receipt_nullifier);
   submitted_count.increment(1);
+}
+
+export circuit approve_claim(claimant_key: Bytes<32>): [] {
+  require_admin();
+  const public_claimant_key = disclose(claimant_key);
+  require_submitted_claim(public_claimant_key);
+
+  claims.insert(public_claimant_key, ClaimStatus.approved);
+  approved_count.increment(1);
+  planned_benefit_total = planned_benefit_total + (fixed_benefit as Field);
+}
+
+// Rejection reasons are intentionally reviewed and retained outside ClaimShield.
+// They never become a circuit argument, private state, or public ledger value.
+export circuit reject_claim(claimant_key: Bytes<32>): [] {
+  require_admin();
+  const public_claimant_key = disclose(claimant_key);
+  require_submitted_claim(public_claimant_key);
+
+  claims.insert(public_claimant_key, ClaimStatus.rejected);
+}
+
+export circuit redeem_claim(): [] {
+  const claimant_key = derive_claimant_key(policy_nonce, local_secret_key());
+  const public_claimant_key = disclose(claimant_key);
+  assert(claims.member(public_claimant_key), "Claim does not exist");
+  assert(
+    claims.lookup(public_claimant_key) == ClaimStatus.approved,
+    "Claim is not approved for redemption"
+  );
+
+  const amount = get_claim_amount();
+  const merchant_digest = get_merchant_digest();
+  const evidence_digest = get_evidence_digest();
+  const opaque_receipt_identifier = get_opaque_receipt_identifier();
+  const salt = get_claim_salt();
+  const expected_commitment = make_payload_commitment(
+    policy_nonce,
+    claimant_key,
+    amount,
+    merchant_digest,
+    evidence_digest,
+    opaque_receipt_identifier,
+    salt
+  );
+  assert(
+    disclose(expected_commitment == commitments.lookup(public_claimant_key)),
+    "Claim commitment does not match private payload"
+  );
+
+  claims.insert(public_claimant_key, ClaimStatus.redeemed);
 }

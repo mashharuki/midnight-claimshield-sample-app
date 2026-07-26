@@ -27,11 +27,21 @@ export type Witnesses<PS> = {
 export type ImpureCircuits<PS> = {
   close_policy(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
   submit_claim(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
+  approve_claim(context: __compactRuntime.CircuitContext<PS>,
+                claimant_key_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  reject_claim(context: __compactRuntime.CircuitContext<PS>,
+               claimant_key_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  redeem_claim(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type ProvableCircuits<PS> = {
   close_policy(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
   submit_claim(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
+  approve_claim(context: __compactRuntime.CircuitContext<PS>,
+                claimant_key_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  reject_claim(context: __compactRuntime.CircuitContext<PS>,
+               claimant_key_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  redeem_claim(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type PureCircuits = {
@@ -44,6 +54,11 @@ export type Circuits<PS> = {
                       secret_key_0: Uint8Array): __compactRuntime.CircuitResults<PS, Uint8Array>;
   close_policy(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
   submit_claim(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
+  approve_claim(context: __compactRuntime.CircuitContext<PS>,
+                claimant_key_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  reject_claim(context: __compactRuntime.CircuitContext<PS>,
+               claimant_key_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  redeem_claim(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type Ledger = {

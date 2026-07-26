@@ -137,6 +137,33 @@ export class ClaimShieldPolicySimulator {
     );
   }
 
+  approveClaim(claimantKey: Uint8Array, name = "admin"): Ledger {
+    return this.apply(
+      name,
+      this.contract.impureCircuits.approve_claim(
+        this.context(name),
+        claimantKey,
+      ),
+    );
+  }
+
+  rejectClaim(claimantKey: Uint8Array, name = "admin"): Ledger {
+    return this.apply(
+      name,
+      this.contract.impureCircuits.reject_claim(
+        this.context(name),
+        claimantKey,
+      ),
+    );
+  }
+
+  redeemClaim(name = "applicant"): Ledger {
+    return this.apply(
+      name,
+      this.contract.impureCircuits.redeem_claim(this.context(name)),
+    );
+  }
+
   private actor(name: string): Actor {
     const actor = this.actors.get(name);
     if (!actor) throw new Error(`Unknown actor: ${name}`);

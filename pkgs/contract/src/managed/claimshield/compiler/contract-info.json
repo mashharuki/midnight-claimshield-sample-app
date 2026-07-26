@@ -51,6 +51,56 @@
         "types": [
         ]
       }
+    },
+    {
+      "name": "approve_claim",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "claimant_key",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "reject_claim",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "claimant_key",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "redeem_claim",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
     }
   ],
   "witnesses": [

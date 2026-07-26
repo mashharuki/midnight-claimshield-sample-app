@@ -39,14 +39,14 @@
   - _Requirements: 3.1, 3.2, 3.3, 4.1, 4.2, 4.3, 7.1, 7.2, 7.4_
   - _Boundary: ClaimShield Contract Claim Submission_
 
-- [ ] 2.4 管理者の承認・取消と公開集計更新を実装する
+- [x] 2.4 管理者の承認・取消と公開集計更新を実装する
   - submitted claim だけを管理者が approved または rejected に遷移できるようにする。
   - 承認時に承認数と固定給付予定総額を更新し、取消理由を contract 引数・private state・ledger に保存しない。
   - 非管理者または判断済み claim の review が拒否され、承認結果が公開集計へ反映される状態が完了条件である。
   - _Requirements: 2.3, 5.1, 5.2, 5.4, 7.1, 7.2_
   - _Boundary: ClaimShield Contract Review State_
 
-- [ ] 2.5 秘密入力に基づく一回限りの引換を実装する
+- [x] 2.5 秘密入力に基づく一回限りの引換を実装する
   - approved claim だけが、提出時の witness と一致する commitment を示して redeemed へ遷移できるようにする。
   - rejected、未承認、redeemed、または不一致 payload の引換を拒否し、資産送付を行わない。
   - 正しい秘密入力で一度だけ redeemed へ遷移し、二度目は拒否される状態が完了条件である。
