@@ -83,7 +83,7 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('close_policy',
                                      'argument 1 (as invoked from Typescript)',
-                                     'claimshield.compact line 83 char 1',
+                                     'claimshield.compact line 95 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
@@ -130,56 +130,56 @@ export class Contract {
     if (!(label_0.buffer instanceof ArrayBuffer && label_0.BYTES_PER_ELEMENT === 1 && label_0.length === 32)) {
       __compactRuntime.typeError('Contract state constructor',
                                  'argument 1 (argument 2 as invoked from Typescript)',
-                                 'claimshield.compact line 45 char 1',
+                                 'claimshield.compact line 57 char 1',
                                  'Bytes<32>',
                                  label_0)
     }
     if (!(category_0.buffer instanceof ArrayBuffer && category_0.BYTES_PER_ELEMENT === 1 && category_0.length === 32)) {
       __compactRuntime.typeError('Contract state constructor',
                                  'argument 2 (argument 3 as invoked from Typescript)',
-                                 'claimshield.compact line 45 char 1',
+                                 'claimshield.compact line 57 char 1',
                                  'Bytes<32>',
                                  category_0)
     }
     if (!(typeof(policy_start_at_0) === 'bigint' && policy_start_at_0 >= 0n && policy_start_at_0 <= 18446744073709551615n)) {
       __compactRuntime.typeError('Contract state constructor',
                                  'argument 3 (argument 4 as invoked from Typescript)',
-                                 'claimshield.compact line 45 char 1',
+                                 'claimshield.compact line 57 char 1',
                                  'Uint<0..18446744073709551616>',
                                  policy_start_at_0)
     }
     if (!(typeof(policy_end_at_0) === 'bigint' && policy_end_at_0 >= 0n && policy_end_at_0 <= 18446744073709551615n)) {
       __compactRuntime.typeError('Contract state constructor',
                                  'argument 4 (argument 5 as invoked from Typescript)',
-                                 'claimshield.compact line 45 char 1',
+                                 'claimshield.compact line 57 char 1',
                                  'Uint<0..18446744073709551616>',
                                  policy_end_at_0)
     }
     if (!(typeof(policy_minimum_amount_0) === 'bigint' && policy_minimum_amount_0 >= 0n && policy_minimum_amount_0 <= 18446744073709551615n)) {
       __compactRuntime.typeError('Contract state constructor',
                                  'argument 5 (argument 6 as invoked from Typescript)',
-                                 'claimshield.compact line 45 char 1',
+                                 'claimshield.compact line 57 char 1',
                                  'Uint<0..18446744073709551616>',
                                  policy_minimum_amount_0)
     }
     if (!(typeof(policy_maximum_amount_0) === 'bigint' && policy_maximum_amount_0 >= 0n && policy_maximum_amount_0 <= 18446744073709551615n)) {
       __compactRuntime.typeError('Contract state constructor',
                                  'argument 6 (argument 7 as invoked from Typescript)',
-                                 'claimshield.compact line 45 char 1',
+                                 'claimshield.compact line 57 char 1',
                                  'Uint<0..18446744073709551616>',
                                  policy_maximum_amount_0)
     }
     if (!(typeof(policy_fixed_benefit_0) === 'bigint' && policy_fixed_benefit_0 >= 0n && policy_fixed_benefit_0 <= 18446744073709551615n)) {
       __compactRuntime.typeError('Contract state constructor',
                                  'argument 7 (argument 8 as invoked from Typescript)',
-                                 'claimshield.compact line 45 char 1',
+                                 'claimshield.compact line 57 char 1',
                                  'Uint<0..18446744073709551616>',
                                  policy_fixed_benefit_0)
     }
     if (!(nonce_0.buffer instanceof ArrayBuffer && nonce_0.BYTES_PER_ELEMENT === 1 && nonce_0.length === 32)) {
       __compactRuntime.typeError('Contract state constructor',
                                  'argument 8 (argument 9 as invoked from Typescript)',
-                                 'claimshield.compact line 45 char 1',
+                                 'claimshield.compact line 57 char 1',
                                  'Bytes<32>',
                                  nonce_0)
     }
@@ -793,14 +793,14 @@ export const pureCircuits = {
     if (!(nonce_0.buffer instanceof ArrayBuffer && nonce_0.BYTES_PER_ELEMENT === 1 && nonce_0.length === 32)) {
       __compactRuntime.typeError('derive_claimant_key',
                                  'argument 1',
-                                 'claimshield.compact line 25 char 1',
+                                 'claimshield.compact line 37 char 1',
                                  'Bytes<32>',
                                  nonce_0)
     }
     if (!(secret_key_0.buffer instanceof ArrayBuffer && secret_key_0.BYTES_PER_ELEMENT === 1 && secret_key_0.length === 32)) {
       __compactRuntime.typeError('derive_claimant_key',
                                  'argument 2',
-                                 'claimshield.compact line 25 char 1',
+                                 'claimshield.compact line 37 char 1',
                                  'Bytes<32>',
                                  secret_key_0)
     }

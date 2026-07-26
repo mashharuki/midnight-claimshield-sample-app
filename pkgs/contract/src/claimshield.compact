@@ -21,6 +21,18 @@ export ledger approved_count: Counter;
 export ledger planned_benefit_total: Field;
 
 witness local_secret_key(): Bytes<32>;
+witness get_claim_amount(): Uint<64>;
+witness get_merchant_digest(): Bytes<32>;
+witness get_evidence_digest(): Bytes<32>;
+witness get_opaque_receipt_identifier(): Bytes<32>;
+witness get_claim_salt(): Bytes<32>;
+witness store_claim(
+  amount: Uint<64>,
+  merchant_digest: Bytes<32>,
+  evidence_digest: Bytes<32>,
+  opaque_receipt_identifier: Bytes<32>,
+  salt: Bytes<32>
+): [];
 
 export pure circuit derive_claimant_key(
   nonce: Bytes<32>,

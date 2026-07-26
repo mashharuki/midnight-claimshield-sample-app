@@ -25,7 +25,7 @@
   - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3_
   - _Boundary: ClaimShield Contract Policy State_
 
-- [ ] 2.2 Claim witness と申請者 private state を実装する
+- [x] 2.2 Claim witness と申請者 private state を実装する
   - 秘密鍵、金額、店舗・証憑 digest、不透明なレシート識別子、salt を型付き witness として保存・取得する。
   - private payload は後続の submit と redeem で同一入力を再提示でき、公開 ledger には含まれないようにする。
   - 独立した申請者コンテキストが各自の private payload だけを読み出せる状態が完了条件である。
