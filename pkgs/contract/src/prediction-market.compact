@@ -1,0 +1,152 @@
+pragma language_version >= 0.16 && <= 0.22;
+
+import CompactStandardLibrary;
+
+export enum MarketPhase { open, reveal, awaiting_result, resolved }
+export enum Team { amber_foxes, cedar_owls, harbor_whales, meadow_bears }
+
+export ledger phase:                 MarketPhase;
+export ledger admin_key:             Bytes<32>;
+export ledger participant_count:     Counter;
+export ledger revealed_count:        Counter;
+export ledger total_pool:            Uint<64>;
+export ledger amber_foxes_pool:      Uint<64>;
+export ledger cedar_owls_pool:       Uint<64>;
+export ledger harbor_whales_pool:    Uint<64>;
+export ledger meadow_bears_pool:     Uint<64>;
+export ledger winning_team:          Team;
+export ledger result_set:            Boolean;
+export ledger total_claimed_rewards: Uint<64>;
+export ledger commitments:           Map<Bytes<32>, Bytes<32>>;
+export ledger stakes:                Map<Bytes<32>, Uint<64>>;
+export ledger participants:          Set<Bytes<32>>;
+export ledger revealed:              Set<Bytes<32>>;
+export ledger claimed:               Set<Bytes<32>>;
+export ledger rewards:               Map<Bytes<32>, Uint<64>>;
+
+witness local_secret_key(): Bytes<32>;
+witness get_selected_team(): Team;
+witness get_prediction_salt(): Bytes<32>;
+witness store_prediction(team: Team, stake: Uint<64>, salt: Bytes<32>): [];
+
+export pure circuit derive_participant_key(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([
+    pad(32, "forecast:participant:v1"), sk
+  ]);
+}
+
+pure circuit make_prediction_commitment(
+  participant_key: Bytes<32>,
+  team: Team,
+  stake: Uint<64>,
+  salt: Bytes<32>
+): Bytes<32> {
+  const team_bytes = ((team as Field) as Bytes<32>);
+  const stake_bytes = ((stake as Field) as Bytes<32>);
+  return persistentHash<Vector<5, Bytes<32>>>([
+    pad(32, "forecast:pick:v1"), participant_key, team_bytes, stake_bytes, salt
+  ]);
+}
+
+circuit require_admin(): [] {
+  const caller = derive_participant_key(local_secret_key());
+  assert(disclose(caller == admin_key), "Only the market administrator can perform this action");
+}
+
+circuit pool_for(team: Team): Uint<64> {
+  if (team == Team.amber_foxes) { return amber_foxes_pool; }
+  if (team == Team.cedar_owls) { return cedar_owls_pool; }
+  if (team == Team.harbor_whales) { return harbor_whales_pool; }
+  return meadow_bears_pool;
+}
+
+constructor() {
+  admin_key = disclose(derive_participant_key(local_secret_key()));
+  phase = MarketPhase.open;
+}
+
+export circuit commit_prediction(stake: Uint<64>): [] {
+  const public_stake = disclose(stake);
+  assert(phase == MarketPhase.open, "Predictions are closed");
+  assert(public_stake >= 10 && public_stake <= 500, "Stake must be between 10 and 500 points");
+
+  const key = derive_participant_key(local_secret_key());
+  assert(!participants.member(disclose(key)), "Participant already committed");
+  const team = get_selected_team();
+  const salt = get_prediction_salt();
+  const commitment = make_prediction_commitment(key, team, public_stake, salt);
+  store_prediction(team, public_stake, salt);
+
+  participants.insert(disclose(key));
+  commitments.insert(disclose(key), disclose(commitment));
+  stakes.insert(disclose(key), public_stake);
+  participant_count.increment(1);
+  total_pool = (total_pool + public_stake) as Uint<64>;
+}
+
+export circuit close_predictions(): [] {
+  require_admin();
+  assert(phase == MarketPhase.open, "Market is not open");
+  phase = MarketPhase.reveal;
+}
+
+export circuit reveal_prediction(): [] {
+  assert(phase == MarketPhase.reveal, "Market is not accepting reveals");
+  const key = derive_participant_key(local_secret_key());
+  const public_key = disclose(key);
+  assert(participants.member(public_key), "Participant did not commit");
+  assert(!revealed.member(public_key), "Prediction already revealed");
+
+  const team = get_selected_team();
+  const salt = get_prediction_salt();
+  const stake = stakes.lookup(public_key);
+  const expected = make_prediction_commitment(key, team, stake, salt);
+  assert(disclose(expected == commitments.lookup(public_key)), "Prediction commitment mismatch");
+
+  if (disclose(team == Team.amber_foxes)) { amber_foxes_pool = (amber_foxes_pool + stake) as Uint<64>; }
+  if (disclose(team == Team.cedar_owls)) { cedar_owls_pool = (cedar_owls_pool + stake) as Uint<64>; }
+  if (disclose(team == Team.harbor_whales)) { harbor_whales_pool = (harbor_whales_pool + stake) as Uint<64>; }
+  if (disclose(team == Team.meadow_bears)) { meadow_bears_pool = (meadow_bears_pool + stake) as Uint<64>; }
+  revealed.insert(public_key);
+  revealed_count.increment(1);
+}
+
+export circuit close_reveal(): [] {
+  require_admin();
+  assert(phase == MarketPhase.reveal, "Market is not in reveal phase");
+  phase = MarketPhase.awaiting_result;
+}
+
+export circuit resolve_market(winner: Team): [] {
+  const public_winner = disclose(winner);
+  require_admin();
+  assert(phase == MarketPhase.awaiting_result, "Market is not awaiting a result");
+  assert(pool_for(public_winner) > 0, "Winning team has no revealed predictions");
+  winning_team = public_winner;
+  result_set = true;
+  phase = MarketPhase.resolved;
+}
+
+export circuit claim_reward(reward: Uint<64>): [] {
+  const public_reward = disclose(reward);
+  assert(phase == MarketPhase.resolved && result_set, "Market is not resolved");
+  const key = derive_participant_key(local_secret_key());
+  const public_key = disclose(key);
+  assert(revealed.member(public_key), "Prediction was not revealed");
+  assert(!claimed.member(public_key), "Reward already claimed");
+  const team = get_selected_team();
+  const salt = get_prediction_salt();
+  const stake = stakes.lookup(public_key);
+  const expected = make_prediction_commitment(key, team, stake, salt);
+  assert(disclose(expected == commitments.lookup(public_key)), "Prediction commitment mismatch");
+  assert(disclose(team == winning_team), "Prediction did not win");
+
+  const winning_pool = pool_for(winning_team);
+  const payout_numerator = total_pool * stake;
+  assert(public_reward * winning_pool <= payout_numerator, "Reward exceeds pari-mutuel entitlement");
+  assert((public_reward + 1) * winning_pool > payout_numerator, "Reward is below floor-rounded entitlement");
+  assert(total_claimed_rewards + public_reward <= total_pool, "Reward conservation violated");
+  rewards.insert(public_key, public_reward);
+  claimed.insert(public_key);
+  total_claimed_rewards = (total_claimed_rewards + public_reward) as Uint<64>;
+}

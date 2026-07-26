@@ -1,0 +1,198 @@
+{
+  "compiler-version": "0.30.0",
+  "language-version": "0.22.0",
+  "runtime-version": "0.15.0",
+  "circuits": [
+    {
+      "name": "derive_participant_key",
+      "pure": true,
+      "proof": false,
+      "arguments": [
+        {
+          "name": "sk",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "commit_prediction",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "stake",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "close_predictions",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "reveal_prediction",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "close_reveal",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "resolve_market",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "winner",
+          "type": {
+            "type-name": "Enum",
+            "name": "Team",
+            "elements": [
+              "amber_foxes",
+              "cedar_owls",
+              "harbor_whales",
+              "meadow_bears"
+            ]
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "claim_reward",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "reward",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    }
+  ],
+  "witnesses": [
+    {
+      "name": "local_secret_key",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "get_selected_team",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Enum",
+        "name": "Team",
+        "elements": [
+          "amber_foxes",
+          "cedar_owls",
+          "harbor_whales",
+          "meadow_bears"
+        ]
+      }
+    },
+    {
+      "name": "get_prediction_salt",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "store_prediction",
+      "arguments": [
+        {
+          "name": "team",
+          "type": {
+            "type-name": "Enum",
+            "name": "Team",
+            "elements": [
+              "amber_foxes",
+              "cedar_owls",
+              "harbor_whales",
+              "meadow_bears"
+            ]
+          }
+        },
+        {
+          "name": "stake",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "salt",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    }
+  ],
+  "contracts": [
+  ]
+}

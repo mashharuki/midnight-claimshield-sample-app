@@ -1,0 +1,72 @@
+{
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+    "OTEL_METRICS_EXPORTER": "otlp"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run build)",
+      "Bash(npm run test:*)",
+      "Read(~/.zshrc)",
+      "Bash(node probe.mjs pre-refactor-check/pkgs/app/dist/assets/index-CJpTfZcu.js)",
+      "Bash(sed -i 's#sandbox.fetch = \\(\\) => Promise.reject\\(new Error\\(\"no fetch in probe\"\\)\\);#sandbox.fetch = \\(\\) => new Promise\\(\\(\\) => {}\\);#' probe.mjs)",
+      "Bash(sed -i 's/}, 2000\\);/}, 5000\\);/' probe.mjs)",
+      "Bash(node probe.mjs /workspaces/midnight-rps-sample-app/pkgs/app/dist/assets/index-BSwpKX1O.js)",
+      "Bash(sed -i '1i process.on\\(\"unhandledRejection\", \\(e\\) => { console.log\\(\"=== UNHANDLED REJECTION ===\"\\); console.log\\(e && e.stack || e\\); }\\);\\\\nprocess.on\\(\"uncaughtException\", \\(e\\) => { console.log\\(\"=== UNCAUGHT EXCEPTION ===\"\\); console.log\\(e && e.stack || e\\); }\\);' probe.mjs)",
+      "Bash(sed -i \"s/document.getElementById = \\(\\) => null;/document.getElementById = \\(\\) => makeAutoStub\\(\\\\\"rootEl\\\\\"\\);/\" probe.mjs)",
+      "Bash(sed -i 's/allowAwaitOutsideFunction: true,/allowAwaitOutsideFunction: true,\\\\n  ranges: true,/' /tmp/claude-1000/-workspaces-midnight-rps-sample-app/aa4a860b-6a43-4194-8bad-6dd5d6dad79d/scratchpad/find-exports-leak.mjs)",
+      "Bash(node /tmp/claude-1000/-workspaces-midnight-rps-sample-app/aa4a860b-6a43-4194-8bad-6dd5d6dad79d/scratchpad/find-exports-leak.mjs /workspaces/midnight-rps-sample-app/pkgs/app/dist/assets/index-BSwpKX1O.js)",
+      "Bash(node /tmp/claude-1000/-workspaces-midnight-rps-sample-app/aa4a860b-6a43-4194-8bad-6dd5d6dad79d/scratchpad/find-exports-leak.mjs /tmp/claude-1000/-workspaces-midnight-rps-sample-app/aa4a860b-6a43-4194-8bad-6dd5d6dad79d/scratchpad/pre-refactor-check/pkgs/app/dist/assets/index-CJpTfZcu.js)",
+      "Bash(find /workspaces/midnight-rps-sample-app/node_modules/.bun/node-stdlib-browser@1.3.1/node_modules/node-stdlib-browser -iname *.js)",
+      "Bash(node -e ' *)",
+      "Bash(grep -n \"node_modules/util\\\\|require\\\\$\\\\$0\\\\|commonjsRequire\\\\|getDefaultExportFromCjs\\\\|__commonJS\\\\|createCommonjsModule\" dist/assets/index-B8CI4eN8.js)",
+      "Bash(grep -o \".\\\\{80\\\\}exports.format=function.\\\\{0,0\\\\}\" dist/assets/index-B8CI4eN8.js)",
+      "Bash(node /tmp/claude-1000/-workspaces-midnight-rps-sample-app/aa4a860b-6a43-4194-8bad-6dd5d6dad79d/scratchpad/find-exports-leak.mjs /workspaces/midnight-rps-sample-app/pkgs/app/dist/assets/index-BDmw6ftz.js)",
+      "Bash(node /tmp/claude-1000/-workspaces-midnight-rps-sample-app/aa4a860b-6a43-4194-8bad-6dd5d6dad79d/scratchpad/find-exports-leak.mjs /workspaces/midnight-rps-sample-app/pkgs/app/dist/assets/index-DX8ukCaq.js)",
+      "Bash(grep -E \"probe\\\\] resolveId: \\(node:\\)?util$|/util\\(/|$\\)\")",
+      "Bash(node /tmp/claude-1000/-workspaces-midnight-rps-sample-app/aa4a860b-6a43-4194-8bad-6dd5d6dad79d/scratchpad/find-exports-leak.mjs /workspaces/midnight-rps-sample-app/pkgs/app/dist/assets/index-1GNBVANN.js)",
+      "Bash(node /tmp/claude-1000/-workspaces-midnight-rps-sample-app/aa4a860b-6a43-4194-8bad-6dd5d6dad79d/scratchpad/find-exports-leak.mjs /workspaces/midnight-rps-sample-app/pkgs/app/dist/assets/index-nFg3bBAX.js)",
+      "Bash(grep -v \"\\\\.map$\")",
+      "Bash(node --experimental-import-meta-resolve -e ' *)",
+      "Bash(node /tmp/claude-1000/-workspaces-midnight-rps-sample-app/aa4a860b-6a43-4194-8bad-6dd5d6dad79d/scratchpad/find-exports-leak.mjs /workspaces/midnight-rps-sample-app/pkgs/app/dist/assets/index-hbyFIYD0.js)",
+      "Bash(node /tmp/claude-1000/-workspaces-midnight-rps-sample-app/aa4a860b-6a43-4194-8bad-6dd5d6dad79d/scratchpad/find-exports-leak.mjs /workspaces/midnight-rps-sample-app/pkgs/app/dist/assets/index-BToL9Zfk.js)",
+      "Bash(node -e \"console.log\\(require\\('node-stdlib-browser'\\).crypto\\)\")",
+      "Bash(node /tmp/claude-1000/-workspaces-midnight-rps-sample-app/aa4a860b-6a43-4194-8bad-6dd5d6dad79d/scratchpad/find-exports-leak.mjs /workspaces/midnight-rps-sample-app/pkgs/app/dist/assets/index-Ezr_P-xW.js)",
+      "Bash(node /tmp/claude-1000/-workspaces-midnight-rps-sample-app/aa4a860b-6a43-4194-8bad-6dd5d6dad79d/scratchpad/find-exports-leak.mjs /workspaces/midnight-rps-sample-app/pkgs/app/dist/assets/index-CYeQeLgt.js)",
+      "Bash(node /tmp/claude-1000/-workspaces-midnight-rps-sample-app/aa4a860b-6a43-4194-8bad-6dd5d6dad79d/scratchpad/probe.mjs /workspaces/midnight-rps-sample-app/pkgs/app/dist/assets/index-CYeQeLgt.js)",
+      "Bash(./node_modules/.bin/biome format *)",
+      "Bash(git worktree *)",
+      "Bash(bunx tsc *)",
+      "Bash(cat /proc/1/cgroup 2>/dev/null | head -5; echo \"---hostname---\"; hostname; echo \"---whoami on docker host---\"; docker inspect cli-proof-server-1 --format '{{.NetworkSettings.Networks}}' 2>/dev/null; echo \"---my own container id check---\"; cat /etc/hostname)",
+      "Read(//proc/1/**)",
+      "Read(//etc/**)",
+      "Bash(docker network *)",
+      "Bash(ip route *)",
+      "Bash(wget -qO- --timeout=5 http://172.17.0.1:6300)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(node -e \"fetch\\('http://172.17.0.1:6300',{signal:AbortSignal.timeout\\(5000\\)}\\).then\\(r=>console.log\\('status',r.status\\)\\).catch\\(e=>console.log\\('ERR',e.message\\)\\)\")",
+      "Bash(docker compose *)",
+      "Bash(timeout 90 bun cli preprod-ps)",
+      "Bash(timeout 120 bun cli preview-ps)",
+      "Bash(python3 -m json.tool)",
+      "Bash(node -e \"fetch\\('http://172.17.0.1:6300',{signal:AbortSignal.timeout\\(5000\\)}\\).then\\(r=>console.log\\('172.17.0.1 status',r.status\\)\\).catch\\(e=>console.log\\('172.17.0.1 ERR',e.message\\)\\)\")",
+      "Bash(node -e \"fetch\\('http://172.18.0.1:6300',{signal:AbortSignal.timeout\\(5000\\)}\\).then\\(r=>console.log\\('172.18.0.1 status',r.status\\)\\).catch\\(e=>console.log\\('172.18.0.1 ERR',e.message\\)\\)\")",
+      "Bash(node -e \"fetch\\('http://172.18.0.2:6300',{signal:AbortSignal.timeout\\(5000\\)}\\).then\\(r=>console.log\\('172.18.0.2\\(container ip\\) status',r.status\\)\\).catch\\(e=>console.log\\('172.18.0.2 ERR',e.message\\)\\)\")"
+    ],
+    "deny": [
+      "Bash(curl:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bun x ccusage statusline"
+  },
+  "enabledPlugins": {
+    "example-skills@anthropic-agent-skills": true
+  }
+}

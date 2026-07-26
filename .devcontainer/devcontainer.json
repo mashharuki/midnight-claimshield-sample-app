@@ -1,0 +1,26 @@
+{
+  "name": "midnight-rps-dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  "postCreateCommand": "compact update 0.30.0 && compact list | grep -F 0.30.0",
+  "postStartCommand": "bash ${containerWorkspaceFolder}/.devcontainer/scripts/fix-docker-socket-permissions.sh",
+  "forwardPorts": [6300],
+  "portsAttributes": {
+    "6300": {
+      "label": "Midnight Proof Server"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

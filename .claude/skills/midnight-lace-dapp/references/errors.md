@@ -1,0 +1,165 @@
+# エラー種別・診断・対処リファレンス
+
+## MidnightWalletErrorType 完全版
+
+```typescript
+export enum MidnightWalletErrorType {
+  // Lace がインストールされていない、またはページロード前に検出できない
+  WALLET_NOT_FOUND        = 'WALLET_NOT_FOUND',
+  // semver チェック失敗（apiVersion が >=1.0.0 を満たさない）
+  INCOMPATIBLE_API_VERSION = 'INCOMPATIBLE_API_VERSION',
+  // 10秒間 window.midnight が見つからない
+  TIMEOUT_FINDING_API      = 'TIMEOUT_FINDING_API',
+  // isEnabled/enable/connect の応答が15秒で来ない
+  TIMEOUT_API_RESPONSE     = 'TIMEOUT_API_RESPONSE',
+  // enable() / connect() が例外を投げた（ユーザー拒否を除く）
+  ENABLE_API_FAILED        = 'ENABLE_API_FAILED',
+  // ユーザーが接続ダイアログで拒否した
+  UNAUTHORIZED             = 'UNAUTHORIZED',
+  // ネットワーク設定の不一致（preprod/mainnet/undeployed/preview）
+  NETWORK_MISMATCH         = 'NETWORK_MISMATCH',
+  UNKNOWN_ERROR            = 'UNKNOWN_ERROR',
+}
+
+export const getErrorType = (error: Error): MidnightWalletErrorType => {
+  const msg = error.message ?? '';
+  if (msg.includes('Could not find Midnight Lace wallet'))
+    return MidnightWalletErrorType.WALLET_NOT_FOUND;
+  if (msg.includes('Incompatible') || msg.includes('apiVersion'))
+    return MidnightWalletErrorType.INCOMPATIBLE_API_VERSION;
+  if (msg.includes('timeout') && msg.includes('finding'))
+    return MidnightWalletErrorType.TIMEOUT_FINDING_API;
+  if (msg.includes('timeout'))
+    return MidnightWalletErrorType.TIMEOUT_API_RESPONSE;
+  if (msg.includes('rejected') || msg.includes('User rejected'))
+    return MidnightWalletErrorType.UNAUTHORIZED;
+  if (msg.includes('mismatch') || msg.includes('Unsupported network'))
+    return MidnightWalletErrorType.NETWORK_MISMATCH;
+  return MidnightWalletErrorType.UNKNOWN_ERROR;
+};
+```
+
+## ユーザー向けエラーメッセージ
+
+```typescript
+const USER_MESSAGES: Record<MidnightWalletErrorType, string> = {
+  WALLET_NOT_FOUND:
+    'Midnight Lace Wallet が見つかりません。' +
+    'Chrome/Firefox 拡張機能をインストールし、ページをリロードしてください。',
+  INCOMPATIBLE_API_VERSION:
+    'Lace Wallet のバージョンが古すぎます。' +
+    '拡張機能を最新版にアップデートしてください。',
+  TIMEOUT_FINDING_API:
+    'Lace Wallet の検出がタイムアウトしました。' +
+    'Wallet がロックされていませんか？ロック解除後に再試行してください。',
+  TIMEOUT_API_RESPONSE:
+    'Lace Wallet の応答がありません。' +
+    'Wallet を開いてリクエストを確認してください。',
+  ENABLE_API_FAILED:
+    'Wallet への接続に失敗しました。Lace を再起動して再試行してください。',
+  UNAUTHORIZED:
+    '接続が拒否されました。「接続」を選択して再試行してください。',
+  NETWORK_MISMATCH:
+    'Lace のネットワーク設定がアプリと一致しません。' +
+    'Lace Settings → Midnight network を確認してください。',
+  UNKNOWN_ERROR:
+    '予期しないエラーが発生しました。コンソールを確認してください。',
+};
+```
+
+## コントラクト操作エラー
+
+### Transaction 関連
+
+| エラーパターン | 原因 | 対処 |
+|---|---|---|
+| `verifier key` を含む | コントラクトのコンパイルバージョン不一致 | `yarn compact` で再コンパイル、ZKキーを再配置 |
+| `insufficient funds` | tDUST 残高不足 | テストネットフォーセットで補充 |
+| `proof server` / `connection refused` | Proof Server 未起動 | `docker compose up proof-server` |
+| Preview / PreProd で `proof server` / `connection refused` | テストネット向け HTTPS Proof Server ではなく `127.0.0.1:6300` を使用している | `getConfiguration()` が返す `proverServerUri` を使用する。ローカル proxy は Standalone に限定する |
+| `indexer` / `ECONNREFUSED` | Indexer 未起動またはURL不正 | Lace のネットワーク設定を確認 |
+| `connector network mismatch` かつ Lace の `indexerUri` が `api/v4`、アプリ設定が `api/v3` | Lace 更新後にアプリのテストネット URI 定義が古くなった | Preview / PreProd の Indexer / WebSocket / Proof Server を `getConfiguration()` の値に合わせる。接続成功後の Lace 設定を古い fallback と比較して拒否しない |
+| `contract not found` | 指定アドレスにコントラクトが存在しない | アドレスを確認、または再デプロイ |
+| `private state not found` | プライベート状態の初期化漏れ | `initialPrivateState` を正しく渡す |
+| Proof Server への fetch が `net::ERR_FAILED`（`127.0.0.1:6300`宛） | Lace の Service Worker がページの fetch をインターセプトしており、Service Worker コンテキストから `127.0.0.1` への直接 fetch を Chrome がブロックしている | 同一オリジンのパス（例: `/proof-server`）にして Vite dev サーバーでプロキシする。詳細は [`build-config.md`](build-config.md) 罠その2 |
+| `Uncaught ReferenceError: exports is not defined`（**本番ビルドのみ**、開発サーバーでは無症状） | `@rollup/plugin-commonjs` が一部の legacy CJS パッケージ（`util`/`assert`/`crypto`/`semver`/`@midnight-ntwrk/midnight-js-utils` 等）を部分的にしか ESM 変換できない | esbuild で個別にバンドルする shim を挟む。詳細は [`build-config.md`](build-config.md) 「本番ビルド限定で起きる罠」 |
+| 手/コミット/リビールなど circuit の `assert()` メッセージが `formatError` 相当のログに出ず、汎用の "Error executing circuit 'reveal'" しか見えない | compact-js の `ContractRuntimeError` のような Effect-TS 系エラーは、本当の assertion メッセージを `.cause` チェーンの中に包む。`String(e)` や `e.message` だけでは失われる | `.cause` を辿って全メッセージを連結するユーティリティ（`while (current?.cause) ...`）でエラー表示する |
+| Lace 経由の tx 実行がコンソール上はエラーになったのに、再読み込みすると実は on-chain には成功していた（`runtime.lastError` チャンネルが閉じた等） | Lace 拡張機能側のメッセージングの問題で、実際には成功したトランザクションがエラーとして UI に伝播することがある | UI 側のステートをオンチェーンの真実（`publicDataProvider` の Observable 購読）で継続的に再照合する。ローカルの status だけを信頼しない — 例えば「commit 送信でエラー扱いになったが ledger の state はすでに `committed`」ならローカル status を `committed` に前進させ、ユーザーを reveal フェーズに進ませる |
+
+### デバッグ手順
+
+```typescript
+// 1. Proof server の疎通確認
+const checkProofServer = async (uri: string) => {
+  const res = await fetch(`${uri.replace('/prove', '')}`);
+  console.log('Proof server:', await res.text()); // "We're alive 🎉!"
+};
+
+// 2. Indexer の疎通確認（GraphQL introspection）
+const checkIndexer = async (uri: string) => {
+  const res = await fetch(uri, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: '{ __typename }' }),
+  });
+  console.log('Indexer:', await res.json());
+};
+
+// 3. Lace v4 の Wallet 状態の確認（state() は legacy API）
+const walletState = await walletAPI.getShieldedAddresses();
+console.log('Wallet state:', {
+  address: walletState.shieldedAddress.substring(0, 20) + '...',
+  coinPublicKey: walletState.shieldedCoinPublicKey.substring(0, 20) + '...',
+});
+
+// 4. プロバイダーの検証
+const providers = buildProviders(walletState);
+console.log('Providers:', Object.keys(providers));
+```
+
+## ZK証明ダウンロードエラー
+
+```
+GET /dist/managed/my-contract/proving_key.cbor 404
+```
+
+原因：ZK キーファイルが `public/dist/` に配置されていない。
+
+```bash
+# Compact コンパイル後のキーファイルをコピー
+cp -r packages/contracts/my-contract/src/managed/ apps/web/public/dist/
+```
+
+## ネットワーク設定デバッグ
+
+```typescript
+import { getNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+
+// 現在の設定を確認
+console.log('Current networkId:', getNetworkId());
+
+// Lace の設定と比較
+const config = await v4Api.getConfiguration();
+console.log('Lace URIs:', config);
+```
+
+## React DevTools でのデバッグ
+
+```typescript
+// コンテキストの状態を確認するユーティリティ
+export const WalletDebugPanel: React.FC = () => {
+  const wallet = useWallet();
+  if (process.env.NODE_ENV !== 'development') return null;
+  
+  return (
+    <pre style={{ fontSize: 10, position: 'fixed', bottom: 0, right: 0, background: '#0001' }}>
+      {JSON.stringify({
+        isConnected: wallet.isConnected,
+        error: wallet.error,
+        address: wallet.address?.substring(0, 20),
+        hasProviders: !!wallet.publicDataProvider,
+      }, null, 2)}
+    </pre>
+  );
+};
+```
