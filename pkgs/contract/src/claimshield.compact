@@ -1,0 +1,87 @@
+pragma language_version >= 0.22 && <= 0.22;
+
+import CompactStandardLibrary;
+
+// ClaimShield keeps policy conditions public while future claim payloads remain
+// witness-backed. One deployed contract represents exactly one policy.
+export enum PolicyState { open, closed }
+
+export ledger policy_state: PolicyState;
+export sealed ledger admin_key: Bytes<32>;
+export sealed ledger policy_nonce: Bytes<32>;
+export sealed ledger policy_label: Bytes<32>;
+export sealed ledger policy_category: Bytes<32>;
+export sealed ledger start_at: Uint<64>;
+export sealed ledger end_at: Uint<64>;
+export sealed ledger minimum_amount: Uint<64>;
+export sealed ledger maximum_amount: Uint<64>;
+export sealed ledger fixed_benefit: Uint<64>;
+export ledger submitted_count: Counter;
+export ledger approved_count: Counter;
+export ledger planned_benefit_total: Field;
+
+witness local_secret_key(): Bytes<32>;
+
+export pure circuit derive_claimant_key(
+  nonce: Bytes<32>,
+  secret_key: Bytes<32>
+): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([
+    pad(32, "claimshield:claimant:v1"), nonce, secret_key
+  ]);
+}
+
+circuit require_admin(): [] {
+  const caller_key = derive_claimant_key(policy_nonce, local_secret_key());
+  assert(disclose(caller_key == admin_key), "Only the policy administrator can perform this action");
+}
+
+// `submit_claim` is implemented in task 2.3. Keeping the policy guard in the
+// contract now ensures later submission logic cannot bypass the policy state.
+circuit require_policy_open(): [] {
+  assert(policy_state == PolicyState.open, "Policy is closed to new claims");
+}
+
+constructor(
+  label: Bytes<32>,
+  category: Bytes<32>,
+  policy_start_at: Uint<64>,
+  policy_end_at: Uint<64>,
+  policy_minimum_amount: Uint<64>,
+  policy_maximum_amount: Uint<64>,
+  policy_fixed_benefit: Uint<64>,
+  nonce: Bytes<32>
+) {
+  const public_label = disclose(label);
+  const public_category = disclose(category);
+  const public_start_at = disclose(policy_start_at);
+  const public_end_at = disclose(policy_end_at);
+  const public_minimum_amount = disclose(policy_minimum_amount);
+  const public_maximum_amount = disclose(policy_maximum_amount);
+  const public_fixed_benefit = disclose(policy_fixed_benefit);
+  const public_nonce = disclose(nonce);
+
+  assert(public_label != default<Bytes<32>>, "Policy label is required");
+  assert(public_category != default<Bytes<32>>, "Policy category is required");
+  assert(public_start_at < public_end_at, "Policy start time must be before end time");
+  assert(public_minimum_amount <= public_maximum_amount, "Policy minimum amount must not exceed maximum amount");
+  assert(public_fixed_benefit > 0, "Policy fixed benefit must be positive");
+
+  policy_state = PolicyState.open;
+  admin_key = disclose(derive_claimant_key(nonce, local_secret_key()));
+  policy_nonce = public_nonce;
+  policy_label = public_label;
+  policy_category = public_category;
+  start_at = public_start_at;
+  end_at = public_end_at;
+  minimum_amount = public_minimum_amount;
+  maximum_amount = public_maximum_amount;
+  fixed_benefit = public_fixed_benefit;
+  planned_benefit_total = 0;
+}
+
+export circuit close_policy(): [] {
+  require_admin();
+  require_policy_open();
+  policy_state = PolicyState.closed;
+}

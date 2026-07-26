@@ -2,7 +2,7 @@
 
 この計画は generated binding と ZK 資産を明示的な前提とする直列実行であり、並列実行マーカーは使用しない。
 
-- [ ] 1. 再現可能な実行環境を整える
+- [x] 1. 再現可能な実行環境を整える
 - [x] 1.1 Dev Container と host の Bun 実行環境を ClaimShield に整合させる
   - root `packageManager` を唯一の Bun バージョン基準にし、Dev Container の表示名と環境値を ClaimShield 用に更新する。
   - host 手順で必要になる Compact、Docker、Compose の前提を設定値として検証できる状態にする。
@@ -10,7 +10,7 @@
   - _Requirements: 9.4, 9.5, 9.7_
   - _Boundary: Development Environment_
 
-- [ ] 1.2 匿名予測市場の domain 実装を除去し、汎用 workspace baseline を残す
+- [x] 1.2 匿名予測市場の domain 実装を除去し、汎用 workspace baseline を残す
   - prediction-market 固有の Compact source、witness、generated artifact、shared domain 型、SDK adapter、hook、画面、翻訳、テスト、build script、公開 ZK asset を一貫して除去する。
   - Bun workspace、wallet 接続、network 設定、Lace/provider 基盤、CLI runtime、Dev Container、共通 UI shell など、ClaimShield が再利用する汎用部分は維持する。
   - domain 固有の import、route、asset、script が残らず、汎用 workspace baseline が typecheck と開発サーバー起動の対象として成立する状態が完了条件である。
@@ -18,7 +18,7 @@
   - _Boundary: Prediction Market Domain Removal and Generic Workspace Baseline_
 
 - [ ] 2. ClaimShield コントラクトの状態機械を実装する
-- [ ] 2.1 公開 policy と管理者による受付終了を実装する
+- [x] 2.1 公開 policy と管理者による受付終了を実装する
   - policy 名、カテゴリ、公開期間、金額範囲、固定給付額、公開集計を保持する。
   - 開始時刻以上の終了時刻、下限超過、固定給付額ゼロを拒否し、管理者だけが受付を終了できるようにする。
   - 有効な policy が公開され、closed policy への新規申請が拒否される状態が完了条件である。

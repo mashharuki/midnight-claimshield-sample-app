@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 
@@ -23,7 +24,15 @@ const BUN = path.resolve(__dirname, "../../node_modules/.bun");
 
 function bunPkg(name: string, version: string): string {
   const key = name.replace("/", "+");
-  return path.join(BUN, `${key}@${version}`, "node_modules", name);
+  const bunCachePath = path.join(
+    BUN,
+    `${key}@${version}`,
+    "node_modules",
+    name,
+  );
+  return existsSync(bunCachePath)
+    ? bunCachePath
+    : path.resolve(__dirname, "../../node_modules", name);
 }
 
 export default defineConfig({
