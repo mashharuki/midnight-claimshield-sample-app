@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="55" failures="0" errors="0" time="4.675734583">
+    <testsuite name="src/claimshield-export.test.ts" timestamp="2026-07-26T14:29:09.040Z" hostname="kondouharuakiranoMacBook-Pro.local" tests="1" failures="0" errors="0" skipped="0" time="0.002281833">
+        <testcase classname="src/claimshield-export.test.ts" name="ClaimShield contract package exports &gt; exports the generated binding and ClaimShield witness helpers" time="0.00157825">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/claimshield-witnesses.test.ts" timestamp="2026-07-26T14:29:09.040Z" hostname="kondouharuakiranoMacBook-Pro.local" tests="4" failures="0" errors="0" skipped="0" time="0.005554833">
+        <testcase classname="src/claimshield-witnesses.test.ts" name="ClaimShield claim witnesses &gt; starts without a claim payload and rejects payload reads" time="0.001333167">
+        </testcase>
+        <testcase classname="src/claimshield-witnesses.test.ts" name="ClaimShield claim witnesses &gt; persists every private input for a later submission or redemption" time="0.001978625">
+        </testcase>
+        <testcase classname="src/claimshield-witnesses.test.ts" name="ClaimShield claim witnesses &gt; stores defensive copies of mutable private byte inputs" time="0.0005255">
+        </testcase>
+        <testcase classname="src/claimshield-witnesses.test.ts" name="ClaimShield claim witnesses &gt; keeps independent applicants&apos; private payloads isolated" time="0.000665333">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/claimshield-lifecycle.test.ts" timestamp="2026-07-26T14:29:09.041Z" hostname="kondouharuakiranoMacBook-Pro.local" tests="13" failures="0" errors="0" skipped="0" time="1.33036875">
+        <testcase classname="src/test/claimshield-lifecycle.test.ts" name="ClaimShield end-to-end policy lifecycle &gt; accepts the policy minimum amount boundary" time="0.138326792">
+        </testcase>
+        <testcase classname="src/test/claimshield-lifecycle.test.ts" name="ClaimShield end-to-end policy lifecycle &gt; accepts the policy maximum amount boundary" time="0.079714875">
+        </testcase>
+        <testcase classname="src/test/claimshield-lifecycle.test.ts" name="ClaimShield end-to-end policy lifecycle &gt; publishes public conditions and completes an approved claim after closing intake" time="0.113768375">
+        </testcase>
+        <testcase classname="src/test/claimshield-lifecycle.test.ts" name="ClaimShield end-to-end policy lifecycle &gt; rejects invalid, duplicate, and unauthorised transitions without changing public state" time="0.178968208">
+        </testcase>
+        <testcase classname="src/test/claimshield-lifecycle.test.ts" name="ClaimShield end-to-end policy lifecycle &gt; keeps existing claims reviewable but rejects new claims after policy closure" time="0.114475583">
+        </testcase>
+        <testcase classname="src/test/claimshield-lifecycle.test.ts" name="ClaimShield end-to-end policy lifecycle &gt; rejects missing private payloads without changing the public claim state" time="0.086978208">
+        </testcase>
+        <testcase classname="src/test/claimshield-lifecycle.test.ts" name="ClaimShield end-to-end policy lifecycle &gt; prevents review decisions after a claim has been redeemed" time="0.094592">
+        </testcase>
+        <testcase classname="src/test/claimshield-lifecycle.test.ts" name="ClaimShield end-to-end policy lifecycle &gt; rejects redemption when the private amount no longer matches its commitment" time="0.081544666">
+        </testcase>
+        <testcase classname="src/test/claimshield-lifecycle.test.ts" name="ClaimShield end-to-end policy lifecycle &gt; rejects redemption when the private merchant digest no longer matches its commitment" time="0.081266375">
+        </testcase>
+        <testcase classname="src/test/claimshield-lifecycle.test.ts" name="ClaimShield end-to-end policy lifecycle &gt; rejects redemption when the private evidence digest no longer matches its commitment" time="0.077493292">
+        </testcase>
+        <testcase classname="src/test/claimshield-lifecycle.test.ts" name="ClaimShield end-to-end policy lifecycle &gt; rejects redemption when the private receipt identifier no longer matches its commitment" time="0.075729167">
+        </testcase>
+        <testcase classname="src/test/claimshield-lifecycle.test.ts" name="ClaimShield end-to-end policy lifecycle &gt; rejects redemption when the private salt no longer matches its commitment" time="0.075805875">
+        </testcase>
+        <testcase classname="src/test/claimshield-lifecycle.test.ts" name="ClaimShield end-to-end policy lifecycle &gt; allows a receipt once per policy while scoping its nullifier to each policy" time="0.129750334">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/claimshield-policy.test.ts" timestamp="2026-07-26T14:29:09.042Z" hostname="kondouharuakiranoMacBook-Pro.local" tests="9" failures="0" errors="0" skipped="0" time="0.518062125">
+        <testcase classname="src/test/claimshield-policy.test.ts" name="ClaimShield policy lifecycle &gt; publishes a valid open policy and zeroed public aggregates" time="0.110243">
+        </testcase>
+        <testcase classname="src/test/claimshield-policy.test.ts" name="ClaimShield policy lifecycle &gt; rejects policy creation with an empty policy label" time="0.056846875">
+        </testcase>
+        <testcase classname="src/test/claimshield-policy.test.ts" name="ClaimShield policy lifecycle &gt; rejects policy creation with an empty policy category" time="0.051851375">
+        </testcase>
+        <testcase classname="src/test/claimshield-policy.test.ts" name="ClaimShield policy lifecycle &gt; rejects policy creation with an end time equal to the start time" time="0.049240417">
+        </testcase>
+        <testcase classname="src/test/claimshield-policy.test.ts" name="ClaimShield policy lifecycle &gt; rejects policy creation with an end time before the start time" time="0.049464333">
+        </testcase>
+        <testcase classname="src/test/claimshield-policy.test.ts" name="ClaimShield policy lifecycle &gt; rejects policy creation with a minimum above the maximum" time="0.04924">
+        </testcase>
+        <testcase classname="src/test/claimshield-policy.test.ts" name="ClaimShield policy lifecycle &gt; rejects policy creation with a zero fixed benefit" time="0.0477925">
+        </testcase>
+        <testcase classname="src/test/claimshield-policy.test.ts" name="ClaimShield policy lifecycle &gt; allows only the administrator to close an open policy" time="0.0653885">
+        </testcase>
+        <testcase classname="src/test/claimshield-policy.test.ts" name="ClaimShield policy lifecycle &gt; rejects a second close operation" time="0.036564459">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/claimshield-privacy.test.ts" timestamp="2026-07-26T14:29:09.042Z" hostname="kondouharuakiranoMacBook-Pro.local" tests="10" failures="0" errors="0" skipped="0" time="0.749897792">
+        <testcase classname="src/test/claimshield-privacy.test.ts" name="ClaimShield public ledger boundary &gt; projects only public policy, status, commitment, nullifier, and aggregate data" time="0.163925875">
+        </testcase>
+        <testcase classname="src/test/claimshield-privacy.test.ts" name="ClaimShield public ledger boundary &gt; rejects a snapshot when a private amount is mixed into it" time="0.044548875">
+        </testcase>
+        <testcase classname="src/test/claimshield-privacy.test.ts" name="ClaimShield public ledger boundary &gt; rejects a snapshot when a private merchantDigest is mixed into it" time="0.040356125">
+        </testcase>
+        <testcase classname="src/test/claimshield-privacy.test.ts" name="ClaimShield public ledger boundary &gt; rejects a snapshot when a private evidenceDigest is mixed into it" time="0.040244292">
+        </testcase>
+        <testcase classname="src/test/claimshield-privacy.test.ts" name="ClaimShield public ledger boundary &gt; rejects a snapshot when a private opaqueReceiptIdentifier is mixed into it" time="0.039288125">
+        </testcase>
+        <testcase classname="src/test/claimshield-privacy.test.ts" name="ClaimShield public ledger boundary &gt; rejects a snapshot when a private salt is mixed into it" time="0.040713083">
+        </testcase>
+        <testcase classname="src/test/claimshield-privacy.test.ts" name="ClaimShield public ledger boundary &gt; rejects a snapshot when a private secretKey is mixed into it" time="0.039039584">
+        </testcase>
+        <testcase classname="src/test/claimshield-privacy.test.ts" name="ClaimShield public ledger boundary &gt; rejects a snapshot when a private claimPayload is mixed into it" time="0.040070125">
+        </testcase>
+        <testcase classname="src/test/claimshield-privacy.test.ts" name="ClaimShield public ledger boundary &gt; rejects a snapshot when a private rejectionReason is mixed into it" time="0.039363">
+        </testcase>
+        <testcase classname="src/test/claimshield-privacy.test.ts" name="ClaimShield public ledger boundary &gt; does not expose private fixture values in contract errors" time="0.26036525">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/claimshield-redemption.test.ts" timestamp="2026-07-26T14:29:09.043Z" hostname="kondouharuakiranoMacBook-Pro.local" tests="5" failures="0" errors="0" skipped="0" time="0.718695292">
+        <testcase classname="src/test/claimshield-redemption.test.ts" name="ClaimShield one-time redemption &gt; redeems an approved claim only with its original private payload" time="0.165487542">
+        </testcase>
+        <testcase classname="src/test/claimshield-redemption.test.ts" name="ClaimShield one-time redemption &gt; allows an approved claim to redeem after the policy closes" time="0.109114208">
+        </testcase>
+        <testcase classname="src/test/claimshield-redemption.test.ts" name="ClaimShield one-time redemption &gt; rejects redemption of submitted, rejected, and already redeemed claims" time="0.244997459">
+        </testcase>
+        <testcase classname="src/test/claimshield-redemption.test.ts" name="ClaimShield one-time redemption &gt; rejects a changed private payload before changing public claim status" time="0.084850916">
+        </testcase>
+        <testcase classname="src/test/claimshield-redemption.test.ts" name="ClaimShield one-time redemption &gt; rejects a different private secret even when payload fields match" time="0.112950542">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/claimshield-review.test.ts" timestamp="2026-07-26T14:29:09.044Z" hostname="kondouharuakiranoMacBook-Pro.local" tests="6" failures="0" errors="0" skipped="0" time="0.670224792">
+        <testcase classname="src/test/claimshield-review.test.ts" name="ClaimShield claim review &gt; allows only the administrator to approve a submitted claim and update aggregates" time="0.151348958">
+        </testcase>
+        <testcase classname="src/test/claimshield-review.test.ts" name="ClaimShield claim review &gt; allows only the administrator to reject a submitted claim without an aggregate update" time="0.08899675">
+        </testcase>
+        <testcase classname="src/test/claimshield-review.test.ts" name="ClaimShield claim review &gt; keeps submitted claims reviewable after the policy closes" time="0.086757625">
+        </testcase>
+        <testcase classname="src/test/claimshield-review.test.ts" name="ClaimShield claim review &gt; adds the fixed benefit for every approved claim" time="0.1360555">
+        </testcase>
+        <testcase classname="src/test/claimshield-review.test.ts" name="ClaimShield claim review &gt; rejects review attempts by a non-administrator" time="0.109271709">
+        </testcase>
+        <testcase classname="src/test/claimshield-review.test.ts" name="ClaimShield claim review &gt; rejects decisions for absent or already decided claims" time="0.096676625">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/claimshield-submission.test.ts" timestamp="2026-07-26T14:29:09.044Z" hostname="kondouharuakiranoMacBook-Pro.local" tests="7" failures="0" errors="0" skipped="0" time="0.680649166">
+        <testcase classname="src/test/claimshield-submission.test.ts" name="ClaimShield private claim submission &gt; records only a pseudonymous submitted claim, commitment, and receipt nullifier" time="0.14658425">
+        </testcase>
+        <testcase classname="src/test/claimshield-submission.test.ts" name="ClaimShield private claim submission &gt; rejects a private amount outside the policy range: 99n" time="0.070464458">
+        </testcase>
+        <testcase classname="src/test/claimshield-submission.test.ts" name="ClaimShield private claim submission &gt; rejects a private amount outside the policy range: 10001n" time="0.068179041">
+        </testcase>
+        <testcase classname="src/test/claimshield-submission.test.ts" name="ClaimShield private claim submission &gt; rejects submissions after the policy is closed" time="0.063295875">
+        </testcase>
+        <testcase classname="src/test/claimshield-submission.test.ts" name="ClaimShield private claim submission &gt; rejects a second submission from the same pseudonymous claimant" time="0.076000459">
+        </testcase>
+        <testcase classname="src/test/claimshield-submission.test.ts" name="ClaimShield private claim submission &gt; rejects reuse of the same receipt within one policy" time="0.109159042">
+        </testcase>
+        <testcase classname="src/test/claimshield-submission.test.ts" name="ClaimShield private claim submission &gt; domains an identical receipt nullifier to each policy" time="0.145718666">
+        </testcase>
+    </testsuite>
+</testsuites>
