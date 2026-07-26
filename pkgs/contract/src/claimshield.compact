@@ -5,6 +5,7 @@ import CompactStandardLibrary;
 // ClaimShield keeps policy conditions public while future claim payloads remain
 // witness-backed. One deployed contract represents exactly one policy.
 export enum PolicyState { open, closed }
+export enum ClaimStatus { none, submitted, approved, rejected, redeemed }
 
 export ledger policy_state: PolicyState;
 export sealed ledger admin_key: Bytes<32>;
@@ -19,6 +20,9 @@ export sealed ledger fixed_benefit: Uint<64>;
 export ledger submitted_count: Counter;
 export ledger approved_count: Counter;
 export ledger planned_benefit_total: Field;
+export ledger claims: Map<Bytes<32>, ClaimStatus>;
+export ledger commitments: Map<Bytes<32>, Bytes<32>>;
+export ledger used_receipt_nullifiers: Set<Bytes<32>>;
 
 witness local_secret_key(): Bytes<32>;
 witness get_claim_amount(): Uint<64>;
@@ -40,6 +44,39 @@ export pure circuit derive_claimant_key(
 ): Bytes<32> {
   return persistentHash<Vector<3, Bytes<32>>>([
     pad(32, "claimshield:claimant:v1"), nonce, secret_key
+  ]);
+}
+
+pure circuit make_payload_commitment(
+  nonce: Bytes<32>,
+  claimant_key: Bytes<32>,
+  amount: Uint<64>,
+  merchant_digest: Bytes<32>,
+  evidence_digest: Bytes<32>,
+  opaque_receipt_identifier: Bytes<32>,
+  salt: Bytes<32>
+): Bytes<32> {
+  const amount_bytes = ((amount as Field) as Bytes<32>);
+  return persistentHash<Vector<8, Bytes<32>>>([
+    pad(32, "claimshield:payload:v1"),
+    nonce,
+    claimant_key,
+    amount_bytes,
+    merchant_digest,
+    evidence_digest,
+    opaque_receipt_identifier,
+    salt
+  ]);
+}
+
+pure circuit make_receipt_nullifier(
+  nonce: Bytes<32>,
+  opaque_receipt_identifier: Bytes<32>
+): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([
+    pad(32, "claimshield:receipt:v1"),
+    nonce,
+    opaque_receipt_identifier
   ]);
 }
 
@@ -96,4 +133,54 @@ export circuit close_policy(): [] {
   require_admin();
   require_policy_open();
   policy_state = PolicyState.closed;
+}
+
+export circuit submit_claim(): [] {
+  require_policy_open();
+
+  const claimant_key = derive_claimant_key(policy_nonce, local_secret_key());
+  const public_claimant_key = disclose(claimant_key);
+  assert(!claims.member(public_claimant_key), "Claimant already submitted");
+
+  const amount = get_claim_amount();
+  const meets_minimum = disclose(amount >= minimum_amount);
+  const meets_maximum = disclose(amount <= maximum_amount);
+  assert(
+    meets_minimum && meets_maximum,
+    "Claim amount is outside policy range"
+  );
+  const merchant_digest = get_merchant_digest();
+  const evidence_digest = get_evidence_digest();
+  const opaque_receipt_identifier = get_opaque_receipt_identifier();
+  const salt = get_claim_salt();
+  const receipt_nullifier = make_receipt_nullifier(
+    policy_nonce,
+    opaque_receipt_identifier
+  );
+  const public_receipt_nullifier = disclose(receipt_nullifier);
+  assert(
+    !used_receipt_nullifiers.member(public_receipt_nullifier),
+    "Receipt has already been used for this policy"
+  );
+  const commitment = make_payload_commitment(
+    policy_nonce,
+    claimant_key,
+    amount,
+    merchant_digest,
+    evidence_digest,
+    opaque_receipt_identifier,
+    salt
+  );
+
+  store_claim(
+    amount,
+    merchant_digest,
+    evidence_digest,
+    opaque_receipt_identifier,
+    salt
+  );
+  claims.insert(public_claimant_key, ClaimStatus.submitted);
+  commitments.insert(public_claimant_key, disclose(commitment));
+  used_receipt_nullifiers.insert(public_receipt_nullifier);
+  submitted_count.increment(1);
 }

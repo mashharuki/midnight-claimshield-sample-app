@@ -7,11 +7,13 @@ import {
   sampleContractAddress,
 } from "@midnight-ntwrk/compact-runtime";
 import {
+  type ClaimShieldClaimPayload,
   type ClaimShieldPrivateState,
   claimShieldWitnesses,
   createInitialClaimShieldPrivateState,
 } from "../claimshield-witnesses.js";
 import {
+  ClaimStatus,
   Contract,
   type Ledger,
   ledger,
@@ -19,7 +21,7 @@ import {
   type Witnesses,
 } from "../managed/claimshield/contract/index.js";
 
-export { PolicyState };
+export { ClaimStatus, PolicyState };
 
 export type PolicyConfiguration = {
   label: Uint8Array;
@@ -52,12 +54,14 @@ export class ClaimShieldPolicySimulator {
   private readonly contract: Contract<ClaimShieldPrivateState>;
   private readonly actors = new Map<string, Actor>();
   private readonly contractAddress = sampleContractAddress();
+  private readonly configuration: PolicyConfiguration;
   private sharedState: ChargedState;
 
   constructor(
     configuration: PolicyConfiguration = defaultPolicy,
     adminSecret = new Uint8Array(32).fill(1),
   ) {
+    this.configuration = configuration;
     this.contract = new Contract<ClaimShieldPrivateState>(
       claimShieldWitnesses as unknown as Witnesses<ClaimShieldPrivateState>,
     );
@@ -86,14 +90,14 @@ export class ClaimShieldPolicySimulator {
     );
     const initial = this.contract.initialState(
       createConstructorContext(privateState, "0".repeat(64)),
-      defaultPolicy.label,
-      defaultPolicy.category,
-      defaultPolicy.startAt,
-      defaultPolicy.endAt,
-      defaultPolicy.minimumAmount,
-      defaultPolicy.maximumAmount,
-      defaultPolicy.fixedBenefit,
-      defaultPolicy.nonce,
+      this.configuration.label,
+      this.configuration.category,
+      this.configuration.startAt,
+      this.configuration.endAt,
+      this.configuration.minimumAmount,
+      this.configuration.maximumAmount,
+      this.configuration.fixedBenefit,
+      this.configuration.nonce,
     );
     this.actors.set(name, {
       privateState,
@@ -109,6 +113,27 @@ export class ClaimShieldPolicySimulator {
     return this.apply(
       name,
       this.contract.impureCircuits.close_policy(this.context(name)),
+    );
+  }
+
+  setClaim(name: string, claim: ClaimShieldClaimPayload): void {
+    const actor = this.actor(name);
+    actor.privateState = {
+      ...actor.privateState,
+      claim: {
+        amount: claim.amount,
+        merchantDigest: new Uint8Array(claim.merchantDigest),
+        evidenceDigest: new Uint8Array(claim.evidenceDigest),
+        opaqueReceiptIdentifier: new Uint8Array(claim.opaqueReceiptIdentifier),
+        salt: new Uint8Array(claim.salt),
+      },
+    };
+  }
+
+  submitClaim(name = "applicant"): Ledger {
+    return this.apply(
+      name,
+      this.contract.impureCircuits.submit_claim(this.context(name)),
     );
   }
 

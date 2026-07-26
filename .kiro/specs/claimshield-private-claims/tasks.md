@@ -32,7 +32,7 @@
   - _Requirements: 3.1, 3.4, 3.5, 6.1, 6.3, 7.2_
   - _Boundary: Claim Witnesses_
 
-- [ ] 2.3 秘密申請、適格性証明、レシート一回利用を実装する
+- [x] 2.3 秘密申請、適格性証明、レシート一回利用を実装する
   - witness の支出額を公開範囲と照合し、疑似申請者 ID、payload commitment、policy-scoped receipt nullifier を生成する。
   - 範囲外、同一疑似 ID の再申請、同一 policy の重複レシートを拒否し、別 policy は独立に判定する。
   - 範囲内の秘密申請が raw payload を公開せず submitted 状態になることが完了条件である。
