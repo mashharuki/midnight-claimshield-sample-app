@@ -13,6 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import fs from "node:fs";
+import path from "node:path";
+
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as ledger from "@midnight-ntwrk/ledger-v8";
@@ -48,7 +51,7 @@ import type { Logger } from "pino";
 import * as Rx from "rxjs";
 import { faucetUrlFor } from "shared";
 import { WebSocket } from "ws";
-import { type Config } from "./config";
+import { type Config, currentDir } from "./config";
 import { DIVIDER } from "./constants";
 
 let logger: Logger;
