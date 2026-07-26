@@ -1,12 +1,12 @@
 {
   "feature_name": "claimshield-private-claims",
   "created_at": "2026-07-26T01:53:50Z",
-  "updated_at": "2026-07-26T01:53:50Z",
+  "updated_at": "2026-07-26T02:41:03Z",
   "language": "ja",
-  "phase": "initialized",
+  "phase": "requirements-generated",
   "approvals": {
     "requirements": {
-      "generated": false,
+      "generated": true,
       "approved": false
     },
     "design": {
