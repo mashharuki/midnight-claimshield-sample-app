@@ -13,32 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import fs from "node:fs";
-import path from "node:path";
-import { CompiledContract } from "@midnight-ntwrk/compact-js";
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import type { ContractAddress } from "@midnight-ntwrk/compact-runtime";
 import * as ledger from "@midnight-ntwrk/ledger-v8";
 import { unshieldedToken } from "@midnight-ntwrk/ledger-v8";
-import {
-  deployContract,
-  findDeployedContract,
-} from "@midnight-ntwrk/midnight-js-contracts";
-import { httpClientProofProvider } from "@midnight-ntwrk/midnight-js-http-client-proof-provider";
-import { indexerPublicDataProvider } from "@midnight-ntwrk/midnight-js-indexer-public-data-provider";
-import { levelPrivateStateProvider } from "@midnight-ntwrk/midnight-js-level-private-state-provider";
 import { getNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
-import { NodeZkConfigProvider } from "@midnight-ntwrk/midnight-js-node-zk-config-provider";
 import type {
-  FinalizedTxData,
   MidnightProvider,
   WalletProvider,
 } from "@midnight-ntwrk/midnight-js-types";
-import {
-  assertIsContractAddress,
-  toHex,
-} from "@midnight-ntwrk/midnight-js-utils";
+import { toHex } from "@midnight-ntwrk/midnight-js-utils";
 import {
   MidnightBech32m,
   ShieldedAddress,
@@ -60,26 +44,11 @@ import {
   type UnshieldedKeystore,
   UnshieldedWallet,
 } from "@midnight-ntwrk/wallet-sdk-unshielded-wallet";
-import { Buffer } from "buffer";
-import {
-  createInitialPredictionMarketPrivateState,
-  PredictionMarket,
-  type PredictionMarketPrivateState,
-  predictionMarketWitnesses,
-} from "contract";
 import type { Logger } from "pino";
 import * as Rx from "rxjs";
-import {
-  type DeployedPredictionMarketContract,
-  faucetUrlFor,
-  type PredictionMarketCircuits,
-  type PredictionMarketLedgerState,
-  PredictionMarketPrivateStateId,
-  type PredictionMarketProviders,
-  teamPool,
-} from "shared";
+import { faucetUrlFor } from "shared";
 import { WebSocket } from "ws";
-import { type Config, currentDir } from "./config";
+import { type Config } from "./config";
 import { DIVIDER } from "./constants";
 
 let logger: Logger;
@@ -691,214 +660,3 @@ export const monitorDustBalance = async (
 export function setLogger(_logger: Logger) {
   logger = _logger;
 }
-
-// ─── Prediction market ──────────────────────────────────────────────────────
-
-const predictionMarketContractConfig = {
-  privateStateStoreName: "prediction-market-private-state",
-  zkConfigPath: path.resolve(
-    currentDir,
-    "..",
-    "..",
-    "contract",
-    "src",
-    "managed",
-    "prediction-market",
-  ),
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CC = CompiledContract as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const predictionMarketCompiledContract = CC.make(
-  "prediction-market",
-  PredictionMarket.Contract,
-).pipe(
-  CC.withWitnesses(predictionMarketWitnesses),
-  CC.withCompiledFileAssets(predictionMarketContractConfig.zkConfigPath),
-);
-
-/**
- * Configure midnight-js providers for prediction-market interaction.
- */
-export const configurePredictionMarketProviders = async (
-  ctx: WalletContext,
-  config: Config,
-  accountId?: string,
-): Promise<PredictionMarketProviders> => {
-  const walletAndMidnightProvider = await createWalletAndMidnightProvider(ctx);
-  const effectiveAccountId =
-    accountId ?? walletAndMidnightProvider.getCoinPublicKey();
-  const storagePassword = `${Buffer.from(effectiveAccountId, "hex").toString("base64")}!`;
-  const zkConfigProvider = new NodeZkConfigProvider<PredictionMarketCircuits>(
-    predictionMarketContractConfig.zkConfigPath,
-  );
-  return {
-    privateStateProvider: levelPrivateStateProvider<
-      typeof PredictionMarketPrivateStateId
-    >({
-      privateStateStoreName:
-        predictionMarketContractConfig.privateStateStoreName,
-      accountId: effectiveAccountId,
-      privateStoragePasswordProvider: () => storagePassword,
-    }),
-    publicDataProvider: indexerPublicDataProvider(
-      config.indexer,
-      config.indexerWS,
-    ),
-    zkConfigProvider,
-    proofProvider: httpClientProofProvider(
-      config.proofServer,
-      zkConfigProvider,
-    ),
-    walletProvider: walletAndMidnightProvider,
-    midnightProvider: walletAndMidnightProvider,
-  };
-};
-
-export const deployPredictionMarket = async (
-  providers: PredictionMarketProviders,
-): Promise<DeployedPredictionMarketContract> => {
-  logger.info("Deploying prediction-market contract...");
-  const contract = await deployContract(providers, {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    compiledContract: predictionMarketCompiledContract as any,
-    privateStateId: PredictionMarketPrivateStateId,
-    initialPrivateState: createInitialPredictionMarketPrivateState(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    args: [] as any,
-  });
-  logger.info(
-    `Deployed prediction-market contract at: ${contract.deployTxData.public.contractAddress}`,
-  );
-  return contract as unknown as DeployedPredictionMarketContract;
-};
-
-export const joinPredictionMarket = async (
-  providers: PredictionMarketProviders,
-  contractAddress: string,
-): Promise<DeployedPredictionMarketContract> => {
-  assertIsContractAddress(contractAddress);
-  logger.info(`Joining prediction market at: ${contractAddress}`);
-  const contract = await findDeployedContract(providers, {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    contractAddress: contractAddress as any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    compiledContract: predictionMarketCompiledContract as any,
-    privateStateId: PredictionMarketPrivateStateId,
-    initialPrivateState: createInitialPredictionMarketPrivateState(),
-  });
-  logger.info(
-    `Joined prediction market at: ${contract.deployTxData.public.contractAddress}`,
-  );
-  return contract as unknown as DeployedPredictionMarketContract;
-};
-
-export const commitPrediction = async (
-  providers: PredictionMarketProviders,
-  contract: DeployedPredictionMarketContract,
-  team: number,
-  stake: bigint,
-): Promise<FinalizedTxData> => {
-  logger.info(`Committing prediction for team ${team} with stake ${stake}...`);
-  const salt = new Uint8Array(32);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (globalThis as any).crypto.getRandomValues(salt);
-  const current =
-    (await providers.privateStateProvider.get(
-      PredictionMarketPrivateStateId,
-    )) ?? createInitialPredictionMarketPrivateState();
-  await providers.privateStateProvider.set(PredictionMarketPrivateStateId, {
-    ...current,
-    selectedTeam: team,
-    stake,
-    salt,
-  });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const finalizedTxData = await (contract as any).callTx.commit_prediction(
-    stake,
-  );
-  logger.info(
-    `Commit TX ${finalizedTxData.public.txId} added in block ${finalizedTxData.public.blockHeight}`,
-  );
-  return finalizedTxData.public as FinalizedTxData;
-};
-
-export const revealPrediction = async (
-  contract: DeployedPredictionMarketContract,
-): Promise<FinalizedTxData> => {
-  logger.info("Revealing prediction...");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const finalizedTxData = await (contract as any).callTx.reveal_prediction();
-  logger.info(
-    `Reveal TX ${finalizedTxData.public.txId} added in block ${finalizedTxData.public.blockHeight}`,
-  );
-  return finalizedTxData.public as FinalizedTxData;
-};
-
-export const closePredictions = async (
-  contract: DeployedPredictionMarketContract,
-): Promise<FinalizedTxData> =>
-  (await (contract as any).callTx.close_predictions())
-    .public as FinalizedTxData;
-
-export const closeReveal = async (
-  contract: DeployedPredictionMarketContract,
-): Promise<FinalizedTxData> =>
-  (await (contract as any).callTx.close_reveal()).public as FinalizedTxData;
-
-export const resolveMarket = async (
-  contract: DeployedPredictionMarketContract,
-  winner: number,
-): Promise<FinalizedTxData> =>
-  (await (contract as any).callTx.resolve_market(winner))
-    .public as FinalizedTxData;
-
-export const claimReward = async (
-  providers: PredictionMarketProviders,
-  contract: DeployedPredictionMarketContract,
-  state: PredictionMarketLedgerState,
-): Promise<FinalizedTxData> => {
-  const privateState = await providers.privateStateProvider.get(
-    PredictionMarketPrivateStateId,
-  );
-  if (privateState?.stake === null || privateState?.stake === undefined) {
-    throw new Error("No committed prediction exists in this wallet");
-  }
-  const winningPool = teamPool(state, state.winning_team);
-  const reward =
-    winningPool === 0n
-      ? 0n
-      : (state.total_pool * privateState.stake) / winningPool;
-  return (await (contract as any).callTx.claim_reward(reward))
-    .public as FinalizedTxData;
-};
-
-export const getPredictionMarketState = async (
-  providers: PredictionMarketProviders,
-  contractAddress: string,
-): Promise<PredictionMarketLedgerState | null> => {
-  assertIsContractAddress(contractAddress);
-  logger.info("Checking prediction-market ledger state...");
-  const state = await providers.publicDataProvider
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .queryContractState(contractAddress as any)
-    .then((contractState) =>
-      contractState != null
-        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (PredictionMarket.ledger(
-            contractState.data as any,
-          ) as unknown as PredictionMarketLedgerState)
-        : null,
-    );
-  logger.info(
-    `Prediction-market state: ${JSON.stringify(state, (_key, value) => {
-      if (typeof value === "bigint") return value.toString();
-      if (value instanceof Uint8Array) {
-        return `0x${Buffer.from(value).toString("hex").slice(0, 8)}...`;
-      }
-      return value;
-    })}`,
-  );
-  return state;
-};

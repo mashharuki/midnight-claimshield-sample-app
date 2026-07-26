@@ -37,4 +37,4 @@ export const WALLET_UNAVAILABLE_RETRY_DELAY_MS = 1_500;
 // ---------------------------------------------------------------------------
 
 /** アプリケーション名 */
-export const APP_NAME = "Hidden League Forecast";
+export const APP_NAME = "ClaimShield";

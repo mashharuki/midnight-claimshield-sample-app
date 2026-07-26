@@ -1,14 +1,8 @@
+import { AddressCard } from "./components/AddressCard";
 import { ConnectSection } from "./components/ConnectSection";
 import { LanguageToggle } from "./components/LanguageToggle";
-import { PredictionMarketView } from "./components/PredictionMarket";
 import { useWallet } from "./contexts/useWallet";
 
-/**
- * アプリのルートコンポーネント。
- * ウォレットの接続状態に応じて表示を切り替える：
- * - connected → 予測市場
- * - それ以外  → 接続ボタン画面 (ConnectSection)
- */
 function App() {
   const { state } = useWallet();
 
@@ -16,7 +10,9 @@ function App() {
     <main className="min-h-screen">
       <LanguageToggle />
       {state.status === "connected" ? (
-        <PredictionMarketView />
+        <div className="flex min-h-screen items-center justify-center px-6 py-20">
+          <AddressCard />
+        </div>
       ) : (
         <ConnectSection />
       )}
