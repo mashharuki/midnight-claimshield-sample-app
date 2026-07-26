@@ -53,8 +53,8 @@
   - _Requirements: 6.1, 6.2, 6.3, 6.4_
   - _Boundary: ClaimShield Contract Redemption State_
 
-- [ ] 3. 生成 binding と公開 ZK 資産をビルド経路へ接続する
-- [ ] 3.1 Compact source をコンパイルし、generated binding と公開 ZK 資産を同期する
+- [x] 3. 生成 binding と公開 ZK 資産をビルド経路へ接続する
+- [x] 3.1 Compact source をコンパイルし、generated binding と公開 ZK 資産を同期する
   - contract export が生成済み ClaimShield binding と witness を公開するようにする。
   - build scripts が ClaimShield の generated keys と `zkir` を app の公開パスへ同期するように更新する。
   - クリーンな build が Compact source から binding と browser 用 ZK 資産を生成する状態が完了条件である。

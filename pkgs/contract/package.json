@@ -19,7 +19,7 @@
     "compact": "compact compile +0.30.0 src/claimshield.compact src/managed/claimshield",
     "test": "bun run compact && vitest run",
     "test:compile": "bun run test",
-    "build": "rm -rf dist && tsc --project tsconfig.build.json",
+    "build": "bun run compact && rm -rf dist && tsc --project tsconfig.build.json && cp -Rf ./src/managed ./dist/managed",
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
