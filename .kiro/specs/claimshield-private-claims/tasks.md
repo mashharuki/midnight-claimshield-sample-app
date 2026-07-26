@@ -98,7 +98,7 @@
   - _Requirements: 1.1, 1.2, 1.3, 7.1, 8.1_
   - _Boundary: ClaimShield Policy View_
 
-- [ ] 5.2 申請者の秘密申請とプライバシー説明を実装する
+- [x] 5.2 申請者の秘密申請とプライバシー説明を実装する
   - 支出額、店舗、レシート識別子を private form として扱い、送信前後に公開情報、ローカル保存情報、秘密値紛失の影響を表示する。
   - 同一 policy 内で疑似 ID が linkable であり、完全な匿名性・本人性・Sybil 耐性を提供しないことを明示する。
   - private form の raw 値が公開 claim 一覧に表示されず、送信結果が transaction stage とともに表示される状態が完了条件である。

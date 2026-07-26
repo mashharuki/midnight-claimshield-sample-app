@@ -7,6 +7,7 @@ import {
   type PolicyInput,
   PolicyState,
 } from "shared";
+import { PrivateClaimSubmission } from "@/components/ClaimShield/PrivateClaimSubmission";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { NetworkToggle } from "@/components/NetworkToggle";
 import { Button } from "@/components/ui/button";
@@ -255,9 +256,11 @@ function Field({
 }
 
 function TransactionProgress({
+  operation,
   stage,
   error,
 }: {
+  operation: ReturnType<typeof useClaimShield>["transaction"]["operation"];
   stage: ReturnType<typeof useClaimShield>["transaction"]["stage"];
   error: ReturnType<typeof useClaimShield>["transaction"]["error"];
 }) {
@@ -274,6 +277,14 @@ function TransactionProgress({
     idle: "",
   } as const;
   const isBusy = isClaimTransactionInFlight(stage);
+  const message =
+    operation === "submit"
+      ? {
+          ...messages,
+          confirming: "Indexer で公開申請状態を確認中です。",
+          succeeded: "秘密申請を記録しました。公開画面には明細を表示しません。",
+        }[stage]
+      : messages[stage];
 
   return (
     <div
@@ -287,7 +298,7 @@ function TransactionProgress({
     >
       {isBusy && <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />}
       <span>
-        {messages[stage]}
+        {message}
         {error && " 安全に再試行できます。"}
       </span>
     </div>
@@ -392,11 +403,13 @@ export function PolicyWorkspace() {
     isWalletConnected,
     requiresWalletConnection,
     ledger,
+    personalClaim,
     transaction,
     readError,
     connectWallet,
     deployPolicy,
     joinPolicy,
+    submitClaim,
   } = useClaimShield();
   const [draft, setDraft] = useState<PolicyDraft>(emptyDraft);
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -460,7 +473,33 @@ export function PolicyWorkspace() {
         </header>
 
         {publicPolicy ? (
-          <PublicPolicyDashboard policy={publicPolicy} />
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.82fr)]">
+            <div>
+              <PublicPolicyDashboard policy={publicPolicy} />
+              <TransactionProgress
+                operation={transaction.operation}
+                stage={transaction.stage}
+                error={transaction.error}
+              />
+              {readError && (
+                <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  公開状態を取得できませんでした。ネットワークと Lace Wallet
+                  の接続を確認して再試行してください。
+                </p>
+              )}
+            </div>
+            <PrivateClaimSubmission
+              minimumAmount={publicPolicy.minimumAmount}
+              maximumAmount={publicPolicy.maximumAmount}
+              policyIsOpen={publicPolicy.isOpen}
+              isWalletConnected={isWalletConnected}
+              requiresWalletConnection={requiresWalletConnection}
+              personalClaim={personalClaim}
+              transaction={transaction}
+              connectWallet={connectWallet}
+              submitClaim={submitClaim}
+            />
+          </div>
         ) : (
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)]">
             <Card className="border-foreground bg-card shadow-[8px_8px_0_#d6c9af]">
@@ -623,6 +662,7 @@ export function PolicyWorkspace() {
                   </Button>
                 </form>
                 <TransactionProgress
+                  operation={transaction.operation}
                   stage={transaction.stage}
                   error={transaction.error}
                 />
