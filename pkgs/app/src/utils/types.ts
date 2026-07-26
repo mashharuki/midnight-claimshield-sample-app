@@ -75,7 +75,12 @@ export type WalletConnectionResult = {
 export type WalletState =
   | { status: "disconnected" }
   | { status: "connecting" }
-  | { status: "connected"; connection: WalletConnectionResult }
+  | {
+      status: "connected";
+      connection: WalletConnectionResult;
+      /** The network selected when this Lace connection was established. */
+      networkId: NetworkId;
+    }
   | { status: "error" };
 
 export interface WalletContextValue {

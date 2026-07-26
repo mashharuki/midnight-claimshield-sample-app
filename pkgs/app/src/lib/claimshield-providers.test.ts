@@ -17,18 +17,13 @@ describe("ClaimShield provider bridge", () => {
   const contractB =
     "0300000000000000000000000000000000000000000000000000000000000000";
 
-  it("isolates private-state storage by both network and contract address", () => {
-    expect(claimShieldPrivateStateStoreName("preview", contractA)).not.toBe(
-      claimShieldPrivateStateStoreName("preprod", contractA),
-    );
-    expect(claimShieldPrivateStateStoreName("preview", contractA)).not.toBe(
-      claimShieldPrivateStateStoreName("preview", contractB),
+  it("uses a stable network store so the SDK can scope private state by its final contract address", () => {
+    expect(claimShieldPrivateStateStoreName("preview")).not.toBe(
+      claimShieldPrivateStateStoreName("preprod"),
     );
     expect(
-      claimShieldPrivateStoragePasswordKey("preview", contractA, "claimant-a"),
-    ).not.toBe(
-      claimShieldPrivateStoragePasswordKey("preview", contractB, "claimant-a"),
-    );
+      claimShieldPrivateStoragePasswordKey("preview", "claimant-a"),
+    ).not.toBe(claimShieldPrivateStoragePasswordKey("preprod", "claimant-a"));
   });
 
   it("isolates the remembered contract address by network", () => {
@@ -61,7 +56,7 @@ describe("ClaimShield provider bridge", () => {
       getItem: (key: string) => values.get(key) ?? null,
       setItem: (key: string, value: string) => values.set(key, value),
     };
-    const scope = createClaimShieldStorageScope("preview", contractA);
+    const scope = createClaimShieldStorageScope("preview");
 
     const first = getOrCreateClaimShieldPrivateStoragePassword(
       scope,
@@ -74,16 +69,10 @@ describe("ClaimShield provider bridge", () => {
       storage,
     );
 
-    expect(first).toHaveLength(64);
+    expect(first).toMatch(/^Cs![0-9a-f]{64}$/);
     expect(second).toBe(first);
     expect(
-      values.get(
-        claimShieldPrivateStoragePasswordKey(
-          "preview",
-          contractA,
-          "claimant-a",
-        ),
-      ),
+      values.get(claimShieldPrivateStoragePasswordKey("preview", "claimant-a")),
     ).toBe(first);
   });
 

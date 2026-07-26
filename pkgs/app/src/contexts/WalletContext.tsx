@@ -44,7 +44,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       // NetworkContext で選択中のネットワークを SDK に反映してから接続する
       setNetworkId(networkId);
       const connection = await connectToWallet(networkId);
-      setState({ status: "connected", connection });
+      setState({ status: "connected", connection, networkId });
     } catch (e: unknown) {
       // Always log the raw error so unclassified failures are diagnosable
       // from the console instead of only surfacing a generic toast.

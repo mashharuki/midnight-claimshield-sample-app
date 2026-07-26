@@ -45,7 +45,6 @@ type LaceLedgerV8TransactionBridge = Readonly<{
 
 export type ClaimShieldStorageScope = Readonly<{
   networkId: NetworkId;
-  contractAddress: ContractAddress;
   privateStateStoreName: string;
   contractAddressStorageKey: string;
 }>;
@@ -65,10 +64,35 @@ function randomPrivateStoragePassword(): string {
   if (!globalThis.crypto?.getRandomValues) {
     throw new Error("Browser cryptography is unavailable.");
   }
-  const bytes = new Uint8Array(32);
-  globalThis.crypto.getRandomValues(bytes);
-  return toHex(bytes);
+  for (let attempt = 0; attempt < 32; attempt += 1) {
+    const bytes = new Uint8Array(32);
+    globalThis.crypto.getRandomValues(bytes);
+    // The provider requires at least three character classes. The random hex
+    // material remains the secret; this fixed prefix only fulfils its validator.
+    const password = `Cs!${toHex(bytes)}`;
+    if (!hasUnsafePasswordPattern(password)) return password;
+  }
+  throw new Error(
+    "Could not create a valid ClaimShield private-state password.",
+  );
 }
+
+const hasUnsafePasswordPattern = (password: string): boolean => {
+  if (/(.)\1{3}/.test(password)) return true;
+  const normalized = password.toLowerCase();
+  for (let start = 0; start <= normalized.length - 4; start += 1) {
+    let ascending = true;
+    let descending = true;
+    for (let offset = 1; offset < 4; offset += 1) {
+      const previous = normalized.charCodeAt(start + offset - 1);
+      const current = normalized.charCodeAt(start + offset);
+      ascending &&= current === previous + 1;
+      descending &&= current === previous - 1;
+    }
+    if (ascending || descending) return true;
+  }
+  return false;
+};
 
 /** A network keeps a separate remembered contract selection. */
 export function claimShieldContractAddressStorageKey(
@@ -78,39 +102,31 @@ export function claimShieldContractAddressStorageKey(
 }
 
 /**
- * The LevelDB object store name includes both public scope dimensions. The
- * provider additionally scopes by the connected account and contract address.
+ * The LevelDB object store is stable for a network. The provider's mandatory
+ * `setContractAddress()` call creates the contract-level sub-scope, allowing a
+ * deployment to receive its address before private state is persisted.
  */
-export function claimShieldPrivateStateStoreName(
-  networkId: NetworkId,
-  contractAddress: ContractAddress | string,
-): string {
-  return `${ClaimShieldPrivateStateId}:${networkId}:${contractAddress}`;
+export function claimShieldPrivateStateStoreName(networkId: NetworkId): string {
+  return `${ClaimShieldPrivateStateId}:${networkId}`;
 }
 
 /**
- * The password is random per account/network/contract scope. It is never
+ * The password is random per account/network scope. It is never
  * derived from wallet public material and never crosses this local boundary.
  */
 export function claimShieldPrivateStoragePasswordKey(
   networkId: NetworkId,
-  contractAddress: ContractAddress | string,
   accountId: string,
 ): string {
-  return `${CLAIMSHIELD_PRIVATE_STORAGE_PASSWORD_PREFIX}:${networkId}:${contractAddress}:${accountId}`;
+  return `${CLAIMSHIELD_PRIVATE_STORAGE_PASSWORD_PREFIX}:${networkId}:${accountId}`;
 }
 
 export function createClaimShieldStorageScope(
   networkId: NetworkId,
-  contractAddress: ContractAddress,
 ): ClaimShieldStorageScope {
   return {
     networkId,
-    contractAddress,
-    privateStateStoreName: claimShieldPrivateStateStoreName(
-      networkId,
-      contractAddress,
-    ),
+    privateStateStoreName: claimShieldPrivateStateStoreName(networkId),
     contractAddressStorageKey: claimShieldContractAddressStorageKey(networkId),
   };
 }
@@ -138,11 +154,7 @@ export function getOrCreateClaimShieldPrivateStoragePassword(
   accountId: string,
   storage: ClaimShieldStorage = requireBrowserStorage(),
 ): string {
-  const key = claimShieldPrivateStoragePasswordKey(
-    scope.networkId,
-    scope.contractAddress,
-    accountId,
-  );
+  const key = claimShieldPrivateStoragePasswordKey(scope.networkId, accountId);
   const existingPassword = storage.getItem(key);
 
   if (existingPassword !== null) {
@@ -181,10 +193,10 @@ export function requireClaimShieldWalletBridge(
 export function createClaimShieldProviders(
   connection: WalletConnectionResult,
   networkId: NetworkId,
-  contractAddress: ContractAddress,
+  contractAddress?: ContractAddress,
 ): ClaimShieldProviders {
   const { wallet, uris, state } = connection;
-  const scope = createClaimShieldStorageScope(networkId, contractAddress);
+  const scope = createClaimShieldStorageScope(networkId);
   const bridge = requireClaimShieldWalletBridge(wallet);
 
   const walletProvider: WalletProvider = {
@@ -219,7 +231,9 @@ export function createClaimShieldProviders(
     accountId: state.coinPublicKey,
     privateStateStoreName: scope.privateStateStoreName,
   });
-  privateStateProvider.setContractAddress(contractAddress);
+  if (contractAddress) {
+    privateStateProvider.setContractAddress(contractAddress);
+  }
 
   const zkConfigProvider = new FetchZkConfigProvider<ClaimShieldCircuits>(
     `${globalThis.location.origin}/managed/claimshield`,

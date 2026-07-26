@@ -61,7 +61,7 @@
   - _Requirements: 8.4, 9.4, 9.5_
   - _Boundary: Contract Build and Generated Assets_
 
-- [ ] 4. SDK と React 状態モデルを段階的に統合する
+- [x] 4. SDK と React 状態モデルを段階的に統合する
 - [x] 4.1 ClaimShield の共有 domain、ledger、provider、error 契約を追加する
   - policy、claim、公開 ledger、transaction stage、識別可能な UI error の型を shared package に定義する。
   - app 層が公開値と秘密値を同じ型に混在させない境界を確立する。
@@ -76,14 +76,14 @@
   - _Requirements: 3.1, 3.4, 3.5, 7.2, 8.1, 8.3_
   - _Boundary: ClaimShield Provider Bridge_
 
-- [ ] 4.3 SDK adapter で write lifecycle と公開状態購読を実装する
+- [x] 4.3 SDK adapter で write lifecycle と公開状態購読を実装する
   - deploy、join、submit、review、redeem を generated binding と provider bridge 経由で実行する。
   - preparing、proving、awaitingSignature、submitting、confirming、terminal stage を、Indexer の期待状態確認まで一貫して通知する。
   - 各 write operation が成功または型付き非秘密 error を返し、確認前に succeeded にならない状態が完了条件である。
   - _Requirements: 1.1, 2.1, 2.3, 3.2, 3.3, 4.1, 4.2, 5.1, 5.4, 6.1, 6.2, 6.3, 8.2, 8.3_
   - _Boundary: ClaimShield SDK Adapter_
 
-- [ ] 4.4 React hook に wallet gate、操作状態、公開・個人 projection を実装する
+- [x] 4.4 React hook に wallet gate、操作状態、公開・個人 projection を実装する
   - 未接続時は write operation を開始せず接続導線へ戻し、非終端 stage では同一操作を重複送信させない。
   - 公開 policy/claim 集計と、ローカル秘密値が存在する自分の claim を別 projection として公開する。
   - hook が秘密値を error やログに含めず、秘密値喪失を回復可能な UI state として返す状態が完了条件である。

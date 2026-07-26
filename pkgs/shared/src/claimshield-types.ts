@@ -105,7 +105,11 @@ export type TransactionStage =
 export type ClaimUiError =
   | {
       kind: "input";
-      code: "invalidPolicyPeriod" | "amountOutOfRange" | "missingReceipt";
+      code:
+        | "invalidPolicyPeriod"
+        | "amountOutOfRange"
+        | "missingReceipt"
+        | "invalidContractAddress";
     }
   | { kind: "privateState"; code: "claimPayloadUnavailable" }
   | {
