@@ -48,6 +48,23 @@ type PrivateClaimSubmissionProps = Readonly<{
   submitClaim: (input: ClaimInput) => Promise<ClaimOperationResult | null>;
 }>;
 
+/**
+ * Decides whether a private-claim write may start from authoritative public
+ * policy state and local operation state. Device-time messaging is deliberately
+ * excluded: it is advisory only and must not block a valid on-chain action.
+ */
+export function canStartPrivateClaim({
+  policyIsOpen,
+  hasExistingClaim,
+  isBusy,
+}: Readonly<{
+  policyIsOpen: boolean;
+  hasExistingClaim: boolean;
+  isBusy: boolean;
+}>): boolean {
+  return policyIsOpen && !hasExistingClaim && !isBusy;
+}
+
 function PrivateField({
   inputId,
   label,
@@ -136,6 +153,11 @@ export function PrivateClaimSubmission({
   );
   const isBusy = isClaimTransactionInFlight(transaction.stage);
   const hasExistingClaim = personalClaim.claim !== null;
+  const canStartClaim = canStartPrivateClaim({
+    policyIsOpen,
+    hasExistingClaim,
+    isBusy,
+  });
   const safeError =
     transaction.operation === "submit"
       ? safeSubmitErrorMessage(transaction.error, minimumAmount, maximumAmount)
@@ -148,7 +170,7 @@ export function PrivateClaimSubmission({
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setHasSubmitted(true);
-    if (!policyIsOpen || hasExistingClaim) return;
+    if (!canStartClaim) return;
 
     const started = await submitPrivateClaimDraft({
       draft,
@@ -274,7 +296,7 @@ export function PrivateClaimSubmission({
                 type="submit"
                 size="lg"
                 className="w-full sm:w-auto"
-                disabled={!policyIsOpen || isBusy}
+                disabled={!canStartClaim}
               >
                 {isBusy && <Loader2 className="animate-spin" />}
                 {isWalletConnected

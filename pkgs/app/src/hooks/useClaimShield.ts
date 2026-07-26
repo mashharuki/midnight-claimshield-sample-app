@@ -93,6 +93,34 @@ export async function runClaimShieldWrite(
   return options.write();
 }
 
+export type ClaimShieldWriteCoordinator = Readonly<{
+  start(options: ClaimShieldWriteOptions): Promise<ClaimOperationResult | null>;
+}>;
+
+/**
+ * Retains the active write promise outside React state so same-tick clicks
+ * cannot create a second Lace signature request before the stage rerenders.
+ */
+export function createClaimShieldWriteCoordinator(): ClaimShieldWriteCoordinator {
+  let activeWrite: Promise<ClaimOperationResult | null> | null = null;
+
+  return {
+    start(options) {
+      if (activeWrite) return activeWrite;
+
+      const pending = runClaimShieldWrite(options);
+      if (!options.isConnected || options.isTransactionInFlight) return pending;
+
+      activeWrite = pending;
+      const release = () => {
+        if (activeWrite === pending) activeWrite = null;
+      };
+      void pending.then(release, release);
+      return pending;
+    },
+  };
+}
+
 /** Projects only safe metadata; raw local claim fields never leave the adapter. */
 export function claimShieldPersonalProjection(
   claim: ClaimantClaimProjection | null,
@@ -168,9 +196,7 @@ export function useClaimShield(): UseClaimShieldResult {
       ? walletState.connection
       : null;
   const scopeVersion = useRef(0);
-  const inFlightPromise = useRef<Promise<ClaimOperationResult | null> | null>(
-    null,
-  );
+  const writeCoordinator = useRef(createClaimShieldWriteCoordinator());
   const [adapter, setAdapter] = useState<ClaimShieldAdapter | null>(null);
   const [contractAddress, setContractAddress] =
     useState<ContractAddress | null>(null);
@@ -301,31 +327,13 @@ export function useClaimShield(): UseClaimShieldResult {
   }, []);
 
   const startWrite = useCallback(
-    (write: () => Promise<ClaimOperationResult>) => {
-      if (inFlightPromise.current) return inFlightPromise.current;
-
-      const pending = runClaimShieldWrite({
+    (write: () => Promise<ClaimOperationResult>) =>
+      writeCoordinator.current.start({
         isConnected: connection !== null,
         isTransactionInFlight: isClaimTransactionInFlight(transaction.stage),
         requestWalletConnection,
         write: async () => completeWrite(await write()),
-      });
-
-      if (
-        connection === null ||
-        isClaimTransactionInFlight(transaction.stage)
-      ) {
-        return pending;
-      }
-
-      inFlightPromise.current = pending;
-      void pending.finally(() => {
-        if (inFlightPromise.current === pending) {
-          inFlightPromise.current = null;
-        }
-      });
-      return pending;
-    },
+      }),
     [completeWrite, connection, requestWalletConnection, transaction.stage],
   );
 

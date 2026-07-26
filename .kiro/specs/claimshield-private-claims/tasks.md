@@ -120,27 +120,27 @@
   - _Boundary: ClaimShield Applicant Redemption View_
 
 - [ ] 6. contract と app の振る舞いを検証する
-- [ ] 6.1 contract simulator で lifecycle と認可を検証する
+- [x] 6.1 contract simulator で lifecycle と認可を検証する
   - policy 条件検証、公開 view、closed policy、非管理者操作、review、aggregate、redeem の正規・異常遷移をテストする。
   - 有効、範囲外、重複、別 policy、承認、取消、引換の全状態遷移が simulator で再現される状態が完了条件である。
   - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 3.2, 3.3, 4.1, 4.2, 4.3, 5.1, 5.4, 6.1, 6.2, 6.3, 6.4_
   - _Boundary: ClaimShield Contract Simulator Tests_
 
-- [ ] 6.2 contract simulator で公開境界を検証する
+- [x] 6.2 contract simulator で公開境界を検証する
   - ledger snapshot に public policy、commitment、nullifier、status、aggregate だけが含まれることを確認する。
   - payload、秘密鍵、salt、レシート識別子、取消理由が ledger や contract error に含まれないことを確認する。
   - privacy assertion が秘密フィールドの混入時に失敗する状態が完了条件である。
   - _Requirements: 3.1, 4.1, 5.2, 7.1, 7.2_
   - _Boundary: ClaimShield Contract Privacy Tests_
 
-- [ ] 6.3 hook の wallet と transaction lifecycle を検証する
+- [x] 6.3 hook の wallet と transaction lifecycle を検証する
   - wallet 未接続 gate、証明・署名・送信・確定の stage、失敗時の retry、重複送信防止をテストする。
   - transaction stage が provider callback と公開状態確認に従って遷移し、秘密値なしの recovery message を返すことを確認する。
   - 未接続・拒否・proof failure・submission failure で安全に再試行できる状態が完了条件である。
   - _Requirements: 3.3, 3.5, 8.1, 8.2, 8.3_
   - _Boundary: ClaimShield Hook Transaction Tests_
 
-- [ ] 6.4 hook と UI 境界のプライバシーを検証する
+- [x] 6.4 hook と UI 境界のプライバシーを検証する
   - network と contract address の組ごとに private state が分離されることをテストする。
   - 期間注意が advisory only であること、非空の取消理由が adapter へ渡らないこと、error/log seam に秘密値が現れないことを確認する。
   - 異なる network または contract の claim が個人 projection に混在しない状態が完了条件である。

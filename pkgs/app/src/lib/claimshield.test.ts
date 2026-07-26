@@ -91,13 +91,19 @@ const createLedger = (
 
 type AdapterHarness = ReturnType<typeof createAdapterHarness>;
 
-function createAdapterHarness(options: { deferClose?: boolean } = {}) {
+function createAdapterHarness(
+  options: {
+    deferClose?: boolean;
+    failureStage?: "proving" | "awaitingSignature" | "submitting";
+  } = {},
+) {
   let policyState = PolicyState.open;
   let claimStatus = ClaimStatus.none;
   let privateState: ClaimShieldPrivateState | null = {
     secretKey: new Uint8Array(32).fill(4),
     claim: null,
   };
+  let failureStage = options.failureStage;
   let stagedProviders: ClaimShieldProviders | null = null;
   const stages: Array<{ operation: string | null; stage: string }> = [];
   const circuitCalls: string[] = [];
@@ -149,13 +155,32 @@ function createAdapterHarness(options: { deferClose?: boolean } = {}) {
     },
   };
   const providers = {
-    proofProvider: { proveTx: vi.fn(async (transaction) => transaction) },
+    proofProvider: {
+      proveTx: vi.fn(async (transaction) => {
+        if (failureStage === "proving") {
+          throw new Error("Proof provider failed.");
+        }
+        return transaction;
+      }),
+    },
     walletProvider: {
       getCoinPublicKey: vi.fn(),
       getEncryptionPublicKey: vi.fn(),
-      balanceTx: vi.fn(async (transaction) => transaction),
+      balanceTx: vi.fn(async (transaction) => {
+        if (failureStage === "awaitingSignature") {
+          throw new Error("User rejected the wallet request.");
+        }
+        return transaction;
+      }),
     },
-    midnightProvider: { submitTx: vi.fn(async () => "tx-id") },
+    midnightProvider: {
+      submitTx: vi.fn(async () => {
+        if (failureStage === "submitting") {
+          throw new Error("Transaction submission failed.");
+        }
+        return "tx-id";
+      }),
+    },
     privateStateProvider: {
       setContractAddress: vi.fn(),
       get: vi.fn(async () => privateState),
@@ -201,6 +226,11 @@ function createAdapterHarness(options: { deferClose?: boolean } = {}) {
     stages,
     setClaimStatus: (next: ClaimStatus) => {
       claimStatus = next;
+    },
+    setFailureStage: (
+      next: "proving" | "awaitingSignature" | "submitting" | undefined,
+    ) => {
+      failureStage = next;
     },
     setPolicyState: (next: PolicyState) => {
       policyState = next;
@@ -281,6 +311,131 @@ describe("ClaimShield SDK transaction lifecycle", () => {
       error: { kind: "privateState", code: "claimPayloadUnavailable" },
     });
     expect(states).toEqual(["preparing", "failed"]);
+  });
+
+  it.each([
+    [
+      "proof generation",
+      "proving",
+      "proof transport failed",
+      { kind: "proof", code: "proofFailed" },
+    ],
+    [
+      "wallet signature",
+      "awaitingSignature",
+      "user rejected the wallet request",
+      { kind: "wallet", code: "walletRejected" },
+    ],
+    [
+      "transaction submission",
+      "submitting",
+      "transaction gateway failed",
+      { kind: "proof", code: "submissionFailed" },
+    ],
+  ] as const)("makes a %s failure retryable without exposing provider details", async (_step, stage, providerMessage, expectedError) => {
+    const stages: string[] = [];
+
+    const result = await runClaimShieldTransaction({
+      operation: "submit",
+      report: (state) => stages.push(state.stage),
+      execute: async (transition) => {
+        transition(stage);
+        throw new Error(providerMessage);
+      },
+      confirm: async () => undefined,
+    });
+
+    expect(result).toEqual({ ok: false, error: expectedError });
+    expect(stages).toEqual(["preparing", stage, "failed"]);
+    expect(JSON.stringify(result)).not.toContain(providerMessage);
+  });
+
+  it("returns a retryable confirmation failure only after the provider stages complete", async () => {
+    const stages: string[] = [];
+    const providerMessage = "indexer confirmation did not arrive";
+
+    const result = await runClaimShieldTransaction({
+      operation: "submit",
+      report: (state) => stages.push(state.stage),
+      execute: async (transition) => {
+        transition("proving");
+        transition("awaitingSignature");
+        transition("submitting");
+      },
+      confirm: async () => {
+        throw new Error(providerMessage);
+      },
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      error: { kind: "proof", code: "confirmationFailed" },
+    });
+    expect(stages).toEqual([
+      "preparing",
+      "proving",
+      "awaitingSignature",
+      "submitting",
+      "confirming",
+      "failed",
+    ]);
+    expect(JSON.stringify(result)).not.toContain(providerMessage);
+  });
+
+  it("keeps private provider details out of transaction results, stages, and console seams", async () => {
+    const privateMarkers = [
+      "987654321",
+      "merchant-private-marker",
+      "receipt-private-marker",
+      "salt-private-marker",
+      "secret-private-marker",
+      "review-reason-private-marker",
+    ];
+    const privateCause = new Error(privateMarkers.join("|"));
+    const providerError = new Error("proof provider failed", {
+      cause: privateCause,
+    });
+    const stageStates: unknown[] = [];
+    const consoleSpies = [
+      vi.spyOn(console, "debug").mockImplementation(() => undefined),
+      vi.spyOn(console, "info").mockImplementation(() => undefined),
+      vi.spyOn(console, "log").mockImplementation(() => undefined),
+      vi.spyOn(console, "warn").mockImplementation(() => undefined),
+      vi.spyOn(console, "error").mockImplementation(() => undefined),
+    ];
+
+    try {
+      const result = await runClaimShieldTransaction({
+        operation: "submit",
+        report: (state) => stageStates.push(state),
+        execute: async (transition) => {
+          transition("proving");
+          throw providerError;
+        },
+        confirm: async () => undefined,
+      });
+      const publicOutput = JSON.stringify({ result, stageStates });
+      const consoleLeaksPrivateValue = consoleSpies.some((spy) =>
+        spy.mock.calls.some((args) =>
+          args.some((value) =>
+            privateMarkers.some((marker) => String(value).includes(marker)),
+          ),
+        ),
+      );
+
+      expect(result).toEqual({
+        ok: false,
+        error: { kind: "proof", code: "proofFailed" },
+      });
+      expect(
+        privateMarkers.some((marker) => publicOutput.includes(marker)),
+      ).toBe(false);
+      expect(consoleLeaksPrivateValue).toBe(false);
+    } finally {
+      consoleSpies.forEach((spy) => {
+        spy.mockRestore();
+      });
+    }
   });
 
   it("executes every generated write circuit through staged providers", async () => {
@@ -423,6 +578,82 @@ describe("ClaimShield SDK transaction lifecycle", () => {
       ok: true,
     });
     expect(harness.getPrivateState()?.claim?.salt).toEqual(firstSalt);
+  });
+
+  it("returns a typed non-secret error for an out-of-range claim before a circuit call", async () => {
+    const harness = createAdapterHarness();
+    await harness.adapter.joinPolicy(contractAddress);
+
+    await expect(
+      harness.adapter.submitClaim({ ...claimInput, amount: 101n }),
+    ).resolves.toEqual({
+      ok: false,
+      error: { kind: "input", code: "amountOutOfRange" },
+    });
+
+    expect(harness.circuitCalls).not.toContain("submit_claim");
+    expect(harness.getPrivateState()?.claim).toBeNull();
+    expect(stagesFor(harness, "submit")).toEqual(["preparing", "failed"]);
+  });
+
+  it("keeps a private payload after a proof failure so the same claim can retry safely", async () => {
+    const harness = createAdapterHarness({ failureStage: "proving" });
+    await harness.adapter.joinPolicy(contractAddress);
+
+    await expect(harness.adapter.submitClaim(claimInput)).resolves.toEqual({
+      ok: false,
+      error: { kind: "proof", code: "proofFailed" },
+    });
+    const persistedSalt = harness.getPrivateState()?.claim?.salt;
+    expect(persistedSalt).toHaveLength(32);
+    expect(harness.getLedger().claims.lookup(claimantKey)).toBe(
+      ClaimStatus.none,
+    );
+
+    harness.setFailureStage(undefined);
+    await expect(harness.adapter.submitClaim(claimInput)).resolves.toEqual({
+      ok: true,
+    });
+    expect(harness.getPrivateState()?.claim?.salt).toEqual(persistedSalt);
+  });
+
+  it.each([
+    [
+      "a wallet rejection",
+      "awaitingSignature",
+      { kind: "wallet", code: "walletRejected" },
+      ["preparing", "proving", "awaitingSignature", "failed"],
+    ],
+    [
+      "a transaction-submission failure",
+      "submitting",
+      { kind: "proof", code: "submissionFailed" },
+      ["preparing", "proving", "awaitingSignature", "submitting", "failed"],
+    ],
+  ] as const)("keeps a persisted private payload and retries after %s through the staged adapter providers", async (_failureName, failureStage, expectedError, expectedStages) => {
+    const harness = createAdapterHarness({ failureStage });
+    await harness.adapter.joinPolicy(contractAddress);
+
+    await expect(harness.adapter.submitClaim(claimInput)).resolves.toEqual({
+      ok: false,
+      error: expectedError,
+    });
+    const persistedSalt = harness.getPrivateState()?.claim?.salt;
+    expect(persistedSalt).toHaveLength(32);
+    expect(stagesFor(harness, "submit")).toEqual(expectedStages);
+    expect(harness.getLedger().claims.lookup(claimantKey)).toBe(
+      ClaimStatus.none,
+    );
+
+    harness.setFailureStage(undefined);
+    await expect(harness.adapter.submitClaim(claimInput)).resolves.toEqual({
+      ok: true,
+    });
+    expect(harness.getPrivateState()?.claim?.salt).toEqual(persistedSalt);
+    expect(stagesFor(harness, "submit").at(-1)).toBe("succeeded");
+    expect(harness.getLedger().claims.lookup(claimantKey)).toBe(
+      ClaimStatus.submitted,
+    );
   });
 
   it("returns only a public personal projection and signals lost private state", async () => {

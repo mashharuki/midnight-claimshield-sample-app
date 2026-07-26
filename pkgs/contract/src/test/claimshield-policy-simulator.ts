@@ -130,6 +130,14 @@ export class ClaimShieldPolicySimulator {
     };
   }
 
+  clearClaim(name: string): void {
+    const actor = this.actor(name);
+    actor.privateState = {
+      ...actor.privateState,
+      claim: null,
+    };
+  }
+
   submitClaim(name = "applicant"): Ledger {
     return this.apply(
       name,

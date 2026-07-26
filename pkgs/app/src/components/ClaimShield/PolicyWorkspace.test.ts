@@ -10,6 +10,7 @@ import {
   toPublicPolicyView,
   validatePolicyDraft,
 } from "./PolicyWorkspace";
+import { canStartPrivateClaim } from "./PrivateClaimSubmission";
 
 const validDraft: PolicyDraft = {
   label: "Lunch support",
@@ -69,6 +70,29 @@ describe("ClaimShield policy workspace", () => {
     );
     expect(policyStateIsOpen(0)).toBe(true);
     expect(policyStateIsOpen(1)).toBe(false);
+  });
+
+  it("does not turn a device-time advisory into a private-claim write gate", () => {
+    const startAt = 1_800_000_000n;
+    const endAt = 1_800_003_600n;
+
+    expect(policyTimingAdvisory(startAt, endAt, 1_800_003_600_000)).not.toBe(
+      null,
+    );
+    expect(
+      canStartPrivateClaim({
+        policyIsOpen: policyStateIsOpen(PolicyState.open),
+        hasExistingClaim: false,
+        isBusy: false,
+      }),
+    ).toBe(true);
+    expect(
+      canStartPrivateClaim({
+        policyIsOpen: policyStateIsOpen(PolicyState.closed),
+        hasExistingClaim: false,
+        isBusy: false,
+      }),
+    ).toBe(false);
   });
 
   it("projects only explicitly public policy data for the dashboard", () => {

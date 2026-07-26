@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   claimShieldPersonalProjection,
   createClaimShieldProjectionSequencer,
+  createClaimShieldWriteCoordinator,
   runClaimShieldWrite,
 } from "./useClaimShield";
 
@@ -40,6 +41,56 @@ describe("ClaimShield hook boundaries", () => {
     ).resolves.toBeNull();
 
     expect(write).not.toHaveBeenCalled();
+  });
+
+  it("shares a same-tick write promise so a wallet request cannot be submitted twice", async () => {
+    let complete: ((value: { ok: true }) => void) | undefined;
+    const write = vi.fn(
+      () =>
+        new Promise<{ ok: true }>((resolve) => {
+          complete = resolve;
+        }),
+    );
+    const coordinator = createClaimShieldWriteCoordinator();
+    const options = {
+      isConnected: true,
+      isTransactionInFlight: false,
+      requestWalletConnection: vi.fn(),
+      write,
+    };
+
+    const first = coordinator.start(options);
+    const second = coordinator.start(options);
+
+    expect(second).toBe(first);
+    expect(write).toHaveBeenCalledOnce();
+    complete?.({ ok: true });
+    await expect(first).resolves.toEqual({ ok: true });
+  });
+
+  it("releases the write guard after a typed failure so the user can retry", async () => {
+    const write = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        error: { kind: "proof", code: "submissionFailed" },
+      })
+      .mockResolvedValueOnce({ ok: true });
+    const coordinator = createClaimShieldWriteCoordinator();
+    const options = {
+      isConnected: true,
+      isTransactionInFlight: false,
+      requestWalletConnection: vi.fn(),
+      write,
+    };
+
+    await expect(coordinator.start(options)).resolves.toEqual({
+      ok: false,
+      error: { kind: "proof", code: "submissionFailed" },
+    });
+    await expect(coordinator.start(options)).resolves.toEqual({ ok: true });
+
+    expect(write).toHaveBeenCalledTimes(2);
   });
 
   it("returns a recovery-only personal projection when the local payload is absent", () => {
@@ -104,5 +155,33 @@ describe("ClaimShield hook boundaries", () => {
       hasLocalPayload: true,
       canRedeem: false,
     });
+  });
+
+  it("does not apply a pending personal claim after its network or contract scope changes", async () => {
+    let resolveClaim:
+      | ((value: ClaimantClaimProjection | null) => void)
+      | undefined;
+    const pendingClaim = new Promise<ClaimantClaimProjection | null>(
+      (resolve) => {
+        resolveClaim = resolve;
+      },
+    );
+    const apply = vi.fn();
+    const sequencer = createClaimShieldProjectionSequencer({
+      apply,
+      fail: vi.fn(),
+    });
+
+    sequencer.refresh(() => pendingClaim);
+    sequencer.invalidate();
+    resolveClaim?.({
+      claimantKey: new Uint8Array(32).fill(8),
+      status: ClaimStatus.approved,
+      hasLocalPayload: true,
+      canRedeem: true,
+    });
+    await Promise.resolve();
+
+    expect(apply).not.toHaveBeenCalled();
   });
 });

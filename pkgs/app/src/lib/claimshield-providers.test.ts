@@ -1,3 +1,8 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { levelPrivateStateProvider } from "@midnight-ntwrk/midnight-js-level-private-state-provider";
+import { ClaimShieldPrivateStateId } from "shared";
 import { describe, expect, it, vi } from "vitest";
 import {
   claimShieldContractAddressStorageKey,
@@ -48,6 +53,52 @@ describe("ClaimShield provider bridge", () => {
     expect(readRememberedClaimShieldContractAddress("preprod", storage)).toBe(
       contractB,
     );
+  });
+
+  it("isolates private state across the network and contract-address scope", async () => {
+    const databasePath = await mkdtemp(
+      join(tmpdir(), "claimshield-private-state-"),
+    );
+    const createProvider = (networkId: "preview" | "preprod") =>
+      levelPrivateStateProvider<
+        typeof ClaimShieldPrivateStateId,
+        { scope: string }
+      >({
+        midnightDbName: databasePath,
+        privateStateStoreName: claimShieldPrivateStateStoreName(networkId),
+        privateStoragePasswordProvider: () => "ClaimShield-Test-Password-2026!",
+        accountId: "claimant-a",
+      });
+
+    try {
+      const preview = createProvider("preview");
+      const preprod = createProvider("preprod");
+
+      preview.setContractAddress(contractA);
+      await preview.set(ClaimShieldPrivateStateId, { scope: "preview-a" });
+
+      preview.setContractAddress(contractB);
+      await expect(preview.get(ClaimShieldPrivateStateId)).resolves.toBeNull();
+      await preview.set(ClaimShieldPrivateStateId, { scope: "preview-b" });
+
+      preprod.setContractAddress(contractA);
+      await expect(preprod.get(ClaimShieldPrivateStateId)).resolves.toBeNull();
+      await preprod.set(ClaimShieldPrivateStateId, { scope: "preprod-a" });
+
+      preview.setContractAddress(contractA);
+      await expect(preview.get(ClaimShieldPrivateStateId)).resolves.toEqual({
+        scope: "preview-a",
+      });
+      preview.setContractAddress(contractB);
+      await expect(preview.get(ClaimShieldPrivateStateId)).resolves.toEqual({
+        scope: "preview-b",
+      });
+      await expect(preprod.get(ClaimShieldPrivateStateId)).resolves.toEqual({
+        scope: "preprod-a",
+      });
+    } finally {
+      await rm(databasePath, { recursive: true, force: true });
+    }
   });
 
   it("creates and reuses a non-public private-state password only within its scope", () => {
