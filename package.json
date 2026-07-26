@@ -17,6 +17,7 @@
     "verify:environment:container": "bun scripts/verify-environment.mjs --container",
     "build": "bun run --cwd pkgs/contract build && bun run sync-keys-claimshield && bun run --cwd pkgs/shared build && bun run --cwd pkgs/cli build && bun run --cwd pkgs/app build",
     "build:app": "bun run --cwd pkgs/contract build && bun run sync-keys-claimshield && bun run --cwd pkgs/shared build && bun run --cwd pkgs/app build",
+    "test:app": "bun run --cwd pkgs/app test",
     "lint": "biome check --write .",
     "format": "biome format --write .",
     "test": "bun run --cwd pkgs/contract test",

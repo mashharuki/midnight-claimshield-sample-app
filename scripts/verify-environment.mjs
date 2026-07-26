@@ -32,5 +32,12 @@ run("docker", ["compose", "version"]);
 run("docker", ["info"]);
 run("docker", ["compose", "-f", "pkgs/cli/proof-server.yml", "config", "--quiet"]);
 run("docker", ["compose", "-f", "pkgs/cli/standalone.yml", "config", "--quiet"]);
+run("docker", [
+  "compose",
+  "-f",
+  "pkgs/cli/standalone.browser.yml",
+  "config",
+  "--quiet",
+]);
 
 console.log(`Environment prerequisites verified with Bun ${installedBun}.`);

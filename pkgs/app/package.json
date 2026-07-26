@@ -7,6 +7,7 @@
     "format": "bunx biome format --write .",
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "test": "vitest run",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -1,4 +1,6 @@
 import { type ClaimShieldLedgerState, ClaimStatus, PolicyState } from "shared";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import {
   isPolicyDraftDeployable,
@@ -6,6 +8,7 @@ import {
   policyInputFromDraft,
   policyStateIsOpen,
   policyTimingAdvisory,
+  PublicPolicyDashboard,
   submitPolicyDraft,
   toPublicPolicyView,
   validatePolicyDraft,
@@ -153,5 +156,32 @@ describe("ClaimShield policy workspace", () => {
       plannedBenefitTotal: 900n,
       isOpen: true,
     });
+  });
+
+  it("shows the public policy contract address needed to join a shared workflow", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PublicPolicyDashboard, {
+        contractAddress:
+          "0200000000000000000000000000000000000000000000000000000000000000",
+        policy: {
+          label: "Lunch support",
+          category: "Wellbeing",
+          startAt: 1_800_000_000n,
+          endAt: 1_800_003_600n,
+          minimumAmount: 500n,
+          maximumAmount: 1_500n,
+          fixedBenefit: 300n,
+          submittedCount: 0n,
+          approvedCount: 0n,
+          plannedBenefitTotal: 0n,
+          isOpen: true,
+        },
+      }),
+    );
+
+    expect(markup).toContain("公開 policy contract address");
+    expect(markup).toContain(
+      "0200000000000000000000000000000000000000000000000000000000000000",
+    );
   });
 });

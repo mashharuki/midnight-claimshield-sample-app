@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   type ClaimShieldLedgerState,
   isClaimTransactionInFlight,
@@ -334,7 +335,13 @@ function TransactionProgress({
   );
 }
 
-function PublicPolicyDashboard({ policy }: { policy: PublicPolicyView }) {
+export function PublicPolicyDashboard({
+  policy,
+  contractAddress,
+}: {
+  policy: PublicPolicyView;
+  contractAddress: string;
+}) {
   const advisory = policyTimingAdvisory(policy.startAt, policy.endAt);
   const statistics = [
     ["申請数", formatAmount(policy.submittedCount)],
@@ -343,7 +350,7 @@ function PublicPolicyDashboard({ policy }: { policy: PublicPolicyView }) {
   ] as const;
 
   return (
-    <section className="space-y-4" aria-label="公開 policy">
+    <section id="policy" className="space-y-4" aria-label="公開 policy">
       <Card className="border-primary/20 bg-card shadow-[8px_8px_0_#d6c9af]">
         <CardHeader className="gap-3 border-b border-border/70 pb-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -373,6 +380,14 @@ function PublicPolicyDashboard({ policy }: { policy: PublicPolicyView }) {
         </CardHeader>
         <CardContent className="space-y-5 pt-4">
           <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <dt className="text-xs text-muted-foreground">
+                公開 policy contract address
+              </dt>
+              <dd className="mt-1 break-all rounded-md bg-muted px-2 py-1 font-mono text-xs">
+                {contractAddress}
+              </dd>
+            </div>
             <div>
               <dt className="text-xs text-muted-foreground">公開受付期間</dt>
               <dd className="mt-1 font-medium">
@@ -427,10 +442,12 @@ function PublicPolicyDashboard({ policy }: { policy: PublicPolicyView }) {
 }
 
 export function PolicyWorkspace() {
+  const { t } = useTranslation();
   const { networkId } = useNetwork();
   const {
     isWalletConnected,
     requiresWalletConnection,
+    contractAddress,
     ledger,
     personalClaim,
     transaction,
@@ -484,14 +501,13 @@ export function PolicyWorkspace() {
         <header className="mb-7 flex flex-wrap items-start justify-between gap-5 border-b-2 border-foreground pb-5">
           <div>
             <p className="text-xs font-bold tracking-[0.22em] text-primary uppercase">
-              Midnight privacy demo
+              {t("claimShield.workspace.eyebrow")}
             </p>
             <h1 className="mt-1 font-serif text-4xl leading-none text-foreground sm:text-5xl">
               ClaimShield
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              秘密の申請明細を公開せず、公開 policy と資格記録を管理する
-              Midnight dApp。
+              {t("claimShield.workspace.subtitle")}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
@@ -499,17 +515,42 @@ export function PolicyWorkspace() {
             <div className="flex items-center gap-3">
               <span className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground">
                 {NETWORKS[networkId].label} ・{" "}
-                {isWalletConnected ? "Wallet connected" : "Wallet required"}
+                {isWalletConnected
+                  ? t("claimShield.workspace.walletConnected")
+                  : t("claimShield.workspace.walletRequired")}
               </span>
               <LanguageToggle />
             </div>
           </div>
         </header>
 
+        <nav
+          className="mb-6 flex flex-wrap gap-2 text-xs font-semibold"
+          aria-label={t("claimShield.navigation.ariaLabel")}
+        >
+          {[
+            ["#policy", t("claimShield.navigation.policy")],
+            ["#claim", t("claimShield.navigation.claim")],
+            ["#review", t("claimShield.navigation.review")],
+            ["#redeem", t("claimShield.navigation.redeem")],
+          ].map(([href, label]) => (
+            <a
+              key={href}
+              className="rounded-full border border-border bg-card px-3 py-1.5 text-muted-foreground transition hover:border-primary hover:text-foreground"
+              href={href}
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
+
         {publicPolicy ? (
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.82fr)]">
             <div>
-              <PublicPolicyDashboard policy={publicPolicy} />
+              <PublicPolicyDashboard
+                policy={publicPolicy}
+                contractAddress={contractAddress ?? ""}
+              />
               <TransactionProgress
                 operation={transaction.operation}
                 stage={transaction.stage}

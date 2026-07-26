@@ -13,8 +13,15 @@ declare module "i18next" {
   }
 }
 
+// Browser storage chooses the persisted language. Static renderers and the
+// Node-based integration tests intentionally have no localStorage.
+const initialLanguage =
+  typeof globalThis.localStorage === "undefined"
+    ? "ja"
+    : (globalThis.localStorage.getItem("lang") ?? "ja");
+
 i18n.use(initReactI18next).init({
-  lng: localStorage.getItem("lang") ?? "ja",
+  lng: initialLanguage,
   fallbackLng: "ja",
   interpolation: {
     // React が XSS エスケープを行うため i18next では無効化

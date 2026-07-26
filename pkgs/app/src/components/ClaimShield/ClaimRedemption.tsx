@@ -111,7 +111,7 @@ export function ClaimRedemption({
   };
 
   return (
-    <section className="space-y-4" aria-label="申請者の引換">
+    <section id="redeem" className="space-y-4" aria-label="申請者の引換">
       <Card className="border-foreground bg-card shadow-[8px_8px_0_#d6c9af]">
         <CardHeader className="border-b border-border/70 pb-4">
           <p className="text-xs font-bold tracking-[0.16em] text-primary uppercase">
