@@ -1,10 +1,10 @@
+import fs from "node:fs";
+import { createRequire } from "node:module";
+import path from "node:path";
 import inject from "@rollup/plugin-inject";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import fs from "fs";
-import { createRequire } from "module";
 import stdLibBrowser from "node-stdlib-browser";
-import path from "path";
 import { defineConfig, type Plugin } from "vite";
 import wasm from "vite-plugin-wasm";
 
@@ -38,6 +38,13 @@ const assertPkgDir = stdLibBrowser.assert as unknown as string;
 const midnightJsUtilsCjsEntry = _require.resolve(
   "@midnight-ntwrk/midnight-js-utils",
 );
+// The generated Compact binding pulls in Subsquid's CommonJS hex helper through
+// the Midnight ledger codec. Treat it like the other production CJS entries
+// below so Rollup never emits its unbound top-level `exports` assignments.
+const subsquidHexCjsEntry = _require.resolve("@subsquid/util-internal-hex");
+// @subsquid/scale-codec contains several CJS modules (including its `sink`
+// implementation) which are imported by the generated Compact binding.
+const subsquidScaleCodecCjsEntry = _require.resolve("@subsquid/scale-codec");
 const cryptoPkgDir = stdLibBrowser.crypto as unknown as string;
 // crypto-browserify's own legacy CJS dependency tree (cipher-base, hash-base,
 // randombytes, asn1.js, ...) references bare Node builtin specifiers like
@@ -286,6 +293,8 @@ interface CjsInteropEntry {
    * leaving more broken CJS files for Rollup to mishandle individually.
    */
   alias?: Record<string, string>;
+  /** Inject the browser `process` polyfill into esbuild-generated CJS code. */
+  needsProcessPolyfill?: boolean;
 }
 
 /**
@@ -351,6 +360,12 @@ function cjsInteropBuildShimPlugin(entries: CjsInteropEntry[]): Plugin {
         alias: e.alias,
       });
       let code = result.outputFiles[0].text;
+      if (e.needsProcessPolyfill) {
+        // This virtual module is generated after Rollup's normal inject pass.
+        // Its crypto-browserify dependency tree still reads the free
+        // `process` identifier, so import the browser-safe polyfill directly.
+        code = `import process from "process/browser";\n${code}`;
+      }
       // esbuild leaves `require("pkg")` behind for external dependencies in
       // bundled CJS. That helper throws in browsers. Promote each external to
       // a real ESM namespace import and replace the generated require call.
@@ -423,6 +438,29 @@ export default defineConfig({
         ],
       },
       {
+        specifiers: ["@subsquid/util-internal-hex"],
+        pkgDir: path.dirname(subsquidHexCjsEntry),
+        entryFile: path.basename(subsquidHexCjsEntry),
+      },
+      {
+        specifiers: ["@subsquid/scale-codec"],
+        pkgDir: path.dirname(subsquidScaleCodecCjsEntry),
+        entryFile: path.basename(subsquidScaleCodecCjsEntry),
+        // Its CommonJS index only uses `__exportStar`, so esbuild exposes a
+        // default export for the bundled namespace. Re-export the public API
+        // that wallet-sdk-address-format imports as named ESM bindings.
+        namedExports: [
+          "ByteSink",
+          "Codec",
+          "HexSink",
+          "JsonCodec",
+          "Sink",
+          "Src",
+          "TypeKind",
+          "decodeBinaryArray",
+        ],
+      },
+      {
         specifiers: ["crypto", "node:crypto"],
         pkgDir: cryptoPkgDir,
         entryFile: "index.js",
@@ -434,6 +472,7 @@ export default defineConfig({
         // them to the same polyfills node-stdlib-browser resolves elsewhere so
         // esbuild can inline the whole tree as one clean ESM unit.
         alias: nodeBuiltinAliasesForEsbuild,
+        needsProcessPolyfill: true,
         namedExports: [
           "randomBytes",
           "rng",

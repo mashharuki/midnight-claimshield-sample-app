@@ -41,6 +41,8 @@ describe("ClaimShield application entry route", () => {
     expect(markup).toContain(
       "Manage private claims without publishing claim details.",
     );
+    expect(markup).toContain("Publish a new policy");
+    expect(markup).toContain("Policy name");
     expect(markup).toContain('href="#policy"');
     expect(markup).toContain('href="#claim"');
     expect(markup).toContain('href="#review"');

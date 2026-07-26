@@ -17,7 +17,7 @@
   - _Requirements: 8.4, 9.4, 9.5_
   - _Boundary: Prediction Market Domain Removal and Generic Workspace Baseline_
 
-- [ ] 2. ClaimShield コントラクトの状態機械を実装する
+- [x] 2. ClaimShield コントラクトの状態機械を実装する
 - [x] 2.1 公開 policy と管理者による受付終了を実装する
   - policy 名、カテゴリ、公開期間、金額範囲、固定給付額、公開集計を保持する。
   - 開始時刻以上の終了時刻、下限超過、固定給付額ゼロを拒否し、管理者だけが受付を終了できるようにする。
@@ -119,7 +119,7 @@
   - _Requirements: 3.5, 6.1, 6.2, 6.3, 6.4, 7.3, 8.2, 8.3_
   - _Boundary: ClaimShield Applicant Redemption View_
 
-- [ ] 6. contract と app の振る舞いを検証する
+- [x] 6. contract と app の振る舞いを検証する
 - [x] 6.1 contract simulator で lifecycle と認可を検証する
   - policy 条件検証、公開 view、closed policy、非管理者操作、review、aggregate、redeem の正規・異常遷移をテストする。
   - 有効、範囲外、重複、別 policy、承認、取消、引換の全状態遷移が simulator で再現される状態が完了条件である。
@@ -147,29 +147,29 @@
   - _Requirements: 1.3, 3.1, 3.4, 5.2, 7.2, 7.3, 7.4, 8.3_
   - _Boundary: ClaimShield Hook Privacy Tests_
 
-- [ ] 7. アプリ統合と再現可能な検証経路を完成させる
-- [ ] 7.1 ClaimShield route、翻訳、production app build を統合する
+- [x] 7. アプリ統合と再現可能な検証経路を完成させる
+- [x] 7.1 ClaimShield route、翻訳、production app build を統合する
   - 既存 prediction-market shell から ClaimShield 画面と locale text を利用できるようにする。
   - app build が generated public ZK assets を参照して成功することを確認する。
   - 起動した browser app から ClaimShield の接続・申請・審査・引換導線へ到達できる状態が完了条件である。
   - _Requirements: 1.3, 3.4, 5.3, 6.4, 7.1, 7.3, 8.1, 8.2_
   - _Boundary: ClaimShield App Integration_
 
-- [ ] 7.2 README に技術的な再現手順とデモ経路を記録する
+- [x] 7.2 README に技術的な再現手順とデモ経路を記録する
   - 概要、課題、公開/秘匿境界、MVP 対象外、利用者別機能、Mermaid architecture、前提条件を記載する。
   - Dev Container と host のそれぞれに install、build、test、run、expected output、Standalone/testnet、wallet/prover/funding の確認方法を記載する。
   - 有効、範囲外、重複、承認、取消、引換を再現する手順が README だけから辿れる状態が完了条件である。
   - _Requirements: 7.4, 8.4, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
   - _Boundary: Reproducibility Documentation and Setup_
 
-- [ ] 7.3 Dev Container のクリーン環境で再現性を検証する
+- [x] 7.3 Dev Container のクリーン環境で再現性を検証する
   - 新しい Dev Container から依存準備、Compact build、tests、app run を README 通りに実行する。
   - expected output と、全デモシナリオを実行する次の操作が README の記述と一致するかを確認する。
   - Dev Container 経路で build/test/run とデモ準備が成功する記録を残すことが完了条件である。
   - _Requirements: 8.4, 9.4, 9.6, 9.7_
   - _Boundary: Dev Container Reproducibility Verification_
 
-- [ ] 7.4 host のクリーン環境で再現性を検証する
+- [x] 7.4 host のクリーン環境で再現性を検証する
   - 新しい host clone から README の非 Dev Container 手順だけで依存準備、build、tests、app run を実行する。
   - 有効、範囲外、重複、承認、取消、引換のデモ開始条件と expected result を確認する。
   - host 経路で build/test/run とデモ準備が成功する記録を残すことが完了条件である。

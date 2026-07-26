@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   type ClaimInput,
   type ClaimOperationResult,
@@ -89,18 +90,21 @@ function PrivateField({
   );
 }
 
-function claimStatusLabel(status: ClaimStatus): string {
+function claimStatusLabel(
+  status: ClaimStatus,
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
   switch (status) {
     case ClaimStatus.submitted:
-      return "提出済み";
+      return t("claimShield.claim.statusSubmitted");
     case ClaimStatus.approved:
-      return "承認済み";
+      return t("claimShield.claim.statusApproved");
     case ClaimStatus.rejected:
-      return "取消済み";
+      return t("claimShield.claim.statusRejected");
     case ClaimStatus.redeemed:
-      return "引換済み";
+      return t("claimShield.claim.statusRedeemed");
     default:
-      return "未提出";
+      return t("claimShield.claim.statusNone");
   }
 }
 
@@ -108,24 +112,50 @@ function safeSubmitErrorMessage(
   error: ClaimUiError | null,
   minimumAmount: bigint,
   maximumAmount: bigint,
+  t: ReturnType<typeof useTranslation>["t"],
 ): string | null {
   if (!error) return null;
   if (error.kind === "input" && error.code === "amountOutOfRange") {
-    return `支出額は ${minimumAmount.toLocaleString("ja-JP")}〜${maximumAmount.toLocaleString("ja-JP")} の範囲で入力してください。`;
+    return t("claimShield.claim.errorRange", {
+      minimum: minimumAmount.toLocaleString(),
+      maximum: maximumAmount.toLocaleString(),
+    });
   }
   if (error.kind === "input" && error.code === "missingReceipt") {
-    return "ランダムなレシート識別子を確認して再試行してください。";
+    return t("claimShield.claim.errorReceipt");
   }
   if (error.kind === "business" && error.code === "duplicateReceipt") {
-    return "この policy では、そのレシート識別子はすでに使用されています。";
+    return t("claimShield.claim.errorDuplicate");
   }
   if (error.kind === "business" && error.code === "policyClosed") {
-    return "この policy はオンチェーンで受付終了です。";
+    return t("claimShield.claim.errorClosed");
   }
   if (error.kind === "wallet") {
-    return "Lace Wallet と選択中のネットワークを確認して再試行してください。";
+    return t("claimShield.claim.errorWallet");
   }
-  return "秘密の入力値を表示せずに処理できませんでした。安全に再試行できます。";
+  return t("claimShield.claim.errorUnknown");
+}
+
+function localizePrivateClaimDraftError(
+  error: string | undefined,
+  minimumAmount: bigint,
+  maximumAmount: bigint,
+  t: ReturnType<typeof useTranslation>["t"],
+): string | undefined {
+  if (!error) return undefined;
+  if (error.startsWith("支出額は")) {
+    return t("claimShield.claim.errorRange", {
+      minimum: minimumAmount.toLocaleString(),
+      maximum: maximumAmount.toLocaleString(),
+    });
+  }
+  if (error === "店舗名を入力してください。") {
+    return t("claimShield.claim.errorMerchant");
+  }
+  if (error.startsWith("ランダムなレシート識別子")) {
+    return t("claimShield.claim.errorReceipt");
+  }
+  return error;
 }
 
 /**
@@ -144,6 +174,7 @@ export function PrivateClaimSubmission({
   connectWallet,
   submitClaim,
 }: PrivateClaimSubmissionProps) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<PrivateClaimDraft>(emptyPrivateClaimDraft);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [walletGateRequested, setWalletGateRequested] = useState(false);
@@ -160,7 +191,12 @@ export function PrivateClaimSubmission({
   });
   const safeError =
     transaction.operation === "submit"
-      ? safeSubmitErrorMessage(transaction.error, minimumAmount, maximumAmount)
+      ? safeSubmitErrorMessage(
+          transaction.error,
+          minimumAmount,
+          maximumAmount,
+          t,
+        )
       : null;
 
   const updateDraft = (field: keyof PrivateClaimDraft, value: string) => {
@@ -187,47 +223,60 @@ export function PrivateClaimSubmission({
   };
 
   return (
-    <section id="claim" className="space-y-4" aria-label="秘密申請">
+    <section
+      id="claim"
+      className="space-y-4"
+      aria-label={t("claimShield.claim.ariaLabel")}
+    >
       <Card className="border-foreground bg-card shadow-[8px_8px_0_#d6c9af]">
         <CardHeader className="border-b border-border/70 pb-4">
           <p className="text-xs font-bold tracking-[0.16em] text-primary uppercase">
-            Private claim
+            {t("claimShield.claim.eyebrow")}
           </p>
-          <CardTitle className="text-2xl">秘密の申請を作成</CardTitle>
+          <CardTitle className="text-2xl">
+            {t("claimShield.claim.title")}
+          </CardTitle>
           <CardDescription>
-            入力値は公開画面にも公開 ledger にも表示されません。
+            {t("claimShield.claim.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 pt-5">
           <div className="rounded-lg border border-primary/20 bg-primary/8 px-3 py-3 text-xs leading-relaxed text-foreground">
-            <p className="font-bold">送信前に理解すること</p>
-            <p className="mt-1">
-              公開されるのは policy 条件、疑似
-              ID、申請状態、commitment、nullifier、件数と集計です。支出額、店舗名、レシート識別子、実ウォレットアドレスは公開しません。
-            </p>
-            <p className="mt-1">
-              入力原文ではなく、引換に必要な額・digest・salt がこのブラウザの
-              private state に保存されます。秘密 payload
-              を失うと、詳細確認や引換にはバックアップからの復元が必要です。
-            </p>
+            <p className="font-bold">{t("claimShield.claim.beforeTitle")}</p>
+            <p className="mt-1">{t("claimShield.claim.beforePublic")}</p>
+            <p className="mt-1">{t("claimShield.claim.beforePrivate")}</p>
           </div>
 
           {hasExistingClaim ? (
             <div className="rounded-lg border border-border bg-muted/60 px-3 py-3 text-sm">
-              <p className="font-bold text-foreground">この端末の申請状態</p>
+              <p className="font-bold text-foreground">
+                {t("claimShield.claim.deviceClaim")}
+              </p>
               <p className="mt-1 text-muted-foreground">
-                {claimStatusLabel(personalClaim.claim.status)} ・
+                {claimStatusLabel(personalClaim.claim.status, t)} ・
                 {personalClaim.claim.hasLocalPayload
-                  ? "このブラウザには private payload があります。"
-                  : "private payload を確認できません。"}
+                  ? t("claimShield.claim.payloadAvailable")
+                  : t("claimShield.claim.payloadUnavailable")}
               </p>
             </div>
           ) : (
             <form className="space-y-4" onSubmit={handleSubmit} noValidate>
               <PrivateField
                 inputId="claim-amount"
-                label={`支出額（${minimumAmount.toLocaleString("ja-JP")}〜${maximumAmount.toLocaleString("ja-JP")}）`}
-                error={hasSubmitted ? errors.amount : undefined}
+                label={t("claimShield.claim.amountLabel", {
+                  minimum: minimumAmount.toLocaleString(),
+                  maximum: maximumAmount.toLocaleString(),
+                })}
+                error={
+                  hasSubmitted
+                    ? localizePrivateClaimDraftError(
+                        errors.amount,
+                        minimumAmount,
+                        maximumAmount,
+                        t,
+                      )
+                    : undefined
+                }
               >
                 <input
                   id="claim-amount"
@@ -239,13 +288,22 @@ export function PrivateClaimSubmission({
                     updateDraft("amount", event.target.value)
                   }
                   aria-invalid={Boolean(hasSubmitted && errors.amount)}
-                  placeholder="例: 720"
+                  placeholder={t("claimShield.claim.amountPlaceholder")}
                 />
               </PrivateField>
               <PrivateField
                 inputId="claim-merchant"
-                label="店舗名（ローカルで digest 化）"
-                error={hasSubmitted ? errors.merchant : undefined}
+                label={t("claimShield.claim.merchantLabel")}
+                error={
+                  hasSubmitted
+                    ? localizePrivateClaimDraftError(
+                        errors.merchant,
+                        minimumAmount,
+                        maximumAmount,
+                        t,
+                      )
+                    : undefined
+                }
               >
                 <input
                   id="claim-merchant"
@@ -256,13 +314,22 @@ export function PrivateClaimSubmission({
                     updateDraft("merchant", event.target.value)
                   }
                   aria-invalid={Boolean(hasSubmitted && errors.merchant)}
-                  placeholder="例: Sora Coffee"
+                  placeholder={t("claimShield.claim.merchantPlaceholder")}
                 />
               </PrivateField>
               <PrivateField
                 inputId="claim-receipt-identifier"
-                label="ランダムなレシート識別子（ローカルで digest 化）"
-                error={hasSubmitted ? errors.receiptIdentifier : undefined}
+                label={t("claimShield.claim.receiptLabel")}
+                error={
+                  hasSubmitted
+                    ? localizePrivateClaimDraftError(
+                        errors.receiptIdentifier,
+                        minimumAmount,
+                        maximumAmount,
+                        t,
+                      )
+                    : undefined
+                }
               >
                 <input
                   id="claim-receipt-identifier"
@@ -276,20 +343,17 @@ export function PrivateClaimSubmission({
                   aria-invalid={Boolean(
                     hasSubmitted && errors.receiptIdentifier,
                   )}
-                  placeholder="32 bytes 以上のランダムな識別子"
+                  placeholder={t("claimShield.claim.receiptPlaceholder")}
                 />
               </PrivateField>
 
               <p className="rounded-lg border border-accent/25 bg-accent/7 px-3 py-2 text-xs leading-relaxed text-foreground">
-                レシート画像や一般的な短い番号は入力しないでください。同一
-                policy
-                内での重複防止には、発行済みのランダムな識別子を同じ値で再利用します。
+                {t("claimShield.claim.receiptHelp")}
               </p>
 
               {!policyIsOpen && (
                 <p className="text-sm text-destructive">
-                  この policy
-                  はオンチェーンで受付終了です。新しい申請は送信できません。
+                  {t("claimShield.claim.closed")}
                 </p>
               )}
               <Button
@@ -300,8 +364,8 @@ export function PrivateClaimSubmission({
               >
                 {isBusy && <Loader2 className="animate-spin" />}
                 {isWalletConnected
-                  ? "秘密申請を送信"
-                  : "接続して秘密申請を送信"}
+                  ? t("claimShield.claim.submit")
+                  : t("claimShield.claim.connectAndSubmit")}
               </Button>
             </form>
           )}
@@ -310,16 +374,13 @@ export function PrivateClaimSubmission({
             requiresWalletConnection &&
             !isWalletConnected && (
               <div className="rounded-lg border border-primary/20 bg-primary/8 p-3 text-sm text-foreground">
-                <p>
-                  申請には Lace Wallet
-                  への接続が必要です。接続後、秘密申請をもう一度実行してください。
-                </p>
+                <p>{t("claimShield.claim.walletRequired")}</p>
                 <Button
                   type="button"
                   className="mt-3"
                   onClick={() => void connectWallet()}
                 >
-                  Lace Wallet を接続
+                  {t("claimShield.claim.connectWallet")}
                 </Button>
               </div>
             )}
@@ -330,8 +391,7 @@ export function PrivateClaimSubmission({
           )}
           {personalClaim.recoveryError && (
             <p className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-xs leading-relaxed text-foreground">
-              このブラウザの private payload
-              を利用できません。詳細確認や引換には、利用者自身のバックアップからの復元が必要です。
+              {t("claimShield.claim.recovery")}
             </p>
           )}
         </CardContent>
@@ -339,16 +399,11 @@ export function PrivateClaimSubmission({
 
       <Card className="border-border bg-card/85">
         <CardContent className="space-y-2 pt-4 text-xs leading-relaxed text-muted-foreground">
-          <p className="font-bold text-foreground">送信後の公開性と限界</p>
-          <p>
-            公開上の申請識別子は、この policy 内で操作を関連付けられる疑似 ID
-            です。完全な匿名性、本人性、Sybil 耐性を保証するものではありません。
+          <p className="font-bold text-foreground">
+            {t("claimShield.claim.privacyTitle")}
           </p>
-          <p>
-            送信が失敗した場合、入力値はこの form
-            内に残り、安全に再試行できます。成功後は form
-            の入力原文を消去します。
-          </p>
+          <p>{t("claimShield.claim.privacyPseudonym")}</p>
+          <p>{t("claimShield.claim.privacyRetry")}</p>
         </CardContent>
       </Card>
     </section>

@@ -96,6 +96,14 @@ bun run dev -- --host 0.0.0.0
 
 Dev Container は Vite の `5173` と proof server の `6300` を forward します。`Ports` view の 5173 をブラウザで開き、Preview / PreProd の Lace を接続して画面を確認してください。Docker socket の権限が反映されない場合は container を再起動してから `bun run verify:environment` を再実行します。
 
+Dev Container での期待結果:
+
+- `postCreateCommand` は依存関係を準備し、`verify:environment:container` は Bun 1.2.0 を確認する。続く `compact update 0.30.0` と `compact list` が Compact 0.30.0 を確認する。
+- `verify:environment` は Docker socket、Docker Compose、browser 用 Standalone Compose 設定を確認する。
+- `build:app` は Compact source から binding / ZK asset を生成・同期して Vite production build を完了する。
+- `verify:claimshield-assets` は `ClaimShield public ZK assets are synchronized.` を表示する。`bun run test` と `bun run test:app` はそれぞれ contract と app の Vitest を成功させる。
+- `bun run dev -- --host 0.0.0.0` は forwarded port 5173 を表示する。次に Lace を接続し、下記のデモ手順を実行する。
+
 ## Standalone と testnet の使い分け
 
 ### Preview / PreProd（browser demo の推奨経路）
@@ -129,7 +137,7 @@ docker compose -f pkgs/cli/standalone.browser.yml down -v
 2. **申請者 A: 範囲外を確認** — 同じ address を「既存 policy を開く」から開き、`499` を入力して送信します。`amountOutOfRange` に対応する安全な範囲外案内が表示され、circuit は送信されません。
 3. **申請者 A: 有効な秘密申請** — `500–1500` の額、店舗名、32 bytes 以上のランダムなレシート識別子を入力します。公開画面には raw amount / merchant / receipt / wallet address が出ず、`submitted`、commitment、nullifier、集計だけが更新されます。
 4. **申請者 B: 重複レシート** — A と同じレシート識別子で申請します。同一 policy 内では duplicate receipt として拒否されます。別 policy は独立です。
-5. **管理者: 承認と取消** — submitted claim を承認すると承認数と固定給付予定総額が増えます。別の submitted claim を取り消す場合は理由を入力しますが、その文字列は ClaimShield に送信・保存されません。
+5. **申請者 B と管理者: 承認と取消** — Step 4 の duplicate 拒否を確認した後、B は新しいランダムなレシート識別子で範囲内の別の秘密申請を送信し、`submitted` になることを確認します。管理者は A の submitted claim を承認すると承認数と固定給付予定総額が増え、B の別の submitted claim を取り消せます。取消前に理由を入力しますが、その文字列は ClaimShield に送信・保存されません。
 6. **申請者 A: 一回限りの引換** — approved かつ同じ browser private state がある申請だけが引換できます。成功後は `redeemed` となり、再実行は拒否されます。資産送付は行いません。
 
 private state を失うと詳細確認と引換はできません。画面が表示する recovery guidance のとおり、利用者自身のバックアップから復元する必要があります。
@@ -153,4 +161,4 @@ bun run test:app
 bun run typecheck
 ```
 
-クリーン Dev Container 検証の実行記録は [`docs/verification/devcontainer-2026-07-26.md`](docs/verification/devcontainer-2026-07-26.md) に残します。
+クリーン環境での実行記録は、[Dev Container](docs/verification/devcontainer-2026-07-26.md) と [host](docs/verification/host-2026-07-26.md) のそれぞれに残します。

@@ -1,8 +1,9 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ClaimStatus, type ClaimTransactionState } from "shared";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ClaimShieldPersonalProjection } from "@/hooks/useClaimShield";
+import i18n from "@/i18n";
 import {
   ClaimRedemption,
   canRedeemPersonalClaim,
@@ -28,6 +29,33 @@ const approvedWithPayload: ClaimShieldPersonalProjection = {
 };
 
 describe("ClaimRedemption", () => {
+  afterEach(async () => {
+    await i18n.changeLanguage("ja");
+  });
+
+  it("renders redemption and safe recovery guidance in English", async () => {
+    await i18n.changeLanguage("en");
+    const markup = renderToStaticMarkup(
+      createElement(ClaimRedemption, {
+        personalClaim: approvedWithPayload,
+        readError: null,
+        transaction: {
+          operation: "redeem",
+          stage: "failed",
+          error: { kind: "privateState", code: "claimPayloadUnavailable" },
+        },
+        isWalletConnected: true,
+        requiresWalletConnection: false,
+        connectWallet: vi.fn(),
+        redeemClaim: vi.fn(),
+      }),
+    );
+
+    expect(markup).toContain("Redeem an entitlement once");
+    expect(markup).toContain("This approved claim can be redeemed.");
+    expect(markup).toContain("Restore it from a backup before trying again.");
+  });
+
   it("only allows an approved claim with its local private payload to redeem", () => {
     expect(canRedeemPersonalClaim(approvedWithPayload)).toBe(true);
     expect(

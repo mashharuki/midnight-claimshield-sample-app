@@ -1,5 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ClaimStatus,
   type ClaimTransactionState,
@@ -44,33 +45,37 @@ export async function submitClaimRedemption({
 
 function safeRedemptionError(
   transaction: ClaimTransactionState,
+  t: ReturnType<typeof useTranslation>["t"],
 ): string | null {
   if (transaction.operation !== "redeem") return null;
   if (transaction.stage !== "failed" || !transaction.error) return null;
   if (transaction.error.kind === "privateState") {
-    return "このブラウザの private payload を利用できません。バックアップから復元してから再試行してください。";
+    return t("claimShield.redeem.errorPrivate");
   }
   if (transaction.error.kind === "business") {
-    return "この申請は引換可能な状態ではありません。公開状態を確認してください。";
+    return t("claimShield.redeem.errorBusiness");
   }
   if (transaction.error.kind === "wallet") {
-    return "Lace Wallet の接続または署名を確認して、もう一度実行してください。";
+    return t("claimShield.redeem.errorWallet");
   }
-  return "引換の資格記録を完了できませんでした。秘密値を表示せずに安全に再試行できます。";
+  return t("claimShield.redeem.errorUnknown");
 }
 
-function claimStatusLabel(status: ClaimStatus | undefined): string {
+function claimStatusLabel(
+  status: ClaimStatus | undefined,
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
   switch (status) {
     case ClaimStatus.submitted:
-      return "審査待ち";
+      return t("claimShield.redeem.statusSubmitted");
     case ClaimStatus.approved:
-      return "承認済み";
+      return t("claimShield.redeem.statusApproved");
     case ClaimStatus.rejected:
-      return "取消済み";
+      return t("claimShield.redeem.statusRejected");
     case ClaimStatus.redeemed:
-      return "引換済み";
+      return t("claimShield.redeem.statusRedeemed");
     default:
-      return "申請なし";
+      return t("claimShield.redeem.statusNone");
   }
 }
 
@@ -94,11 +99,12 @@ export function ClaimRedemption({
   connectWallet,
   redeemClaim,
 }: ClaimRedemptionProps) {
+  const { t } = useTranslation();
   const [walletGateRequested, setWalletGateRequested] = useState(false);
   const isBusy = isClaimTransactionInFlight(transaction.stage);
   const canRedeem = canRedeemPersonalClaim(personalClaim);
   const status = personalClaim.claim?.status;
-  const safeError = safeRedemptionError(transaction);
+  const safeError = safeRedemptionError(transaction, t);
   const hasUnavailablePayload =
     personalClaim.recoveryError !== null ||
     (readError?.kind === "privateState" &&
@@ -111,38 +117,44 @@ export function ClaimRedemption({
   };
 
   return (
-    <section id="redeem" className="space-y-4" aria-label="申請者の引換">
+    <section
+      id="redeem"
+      className="space-y-4"
+      aria-label={t("claimShield.redeem.ariaLabel")}
+    >
       <Card className="border-foreground bg-card shadow-[8px_8px_0_#d6c9af]">
         <CardHeader className="border-b border-border/70 pb-4">
           <p className="text-xs font-bold tracking-[0.16em] text-primary uppercase">
-            Applicant redemption
+            {t("claimShield.redeem.eyebrow")}
           </p>
-          <CardTitle className="text-2xl">資格を一回だけ引換</CardTitle>
+          <CardTitle className="text-2xl">
+            {t("claimShield.redeem.title")}
+          </CardTitle>
           <CardDescription>
-            引換は固定給付の資格記録です。資産送付や支払いは行いません。
+            {t("claimShield.redeem.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-5">
           <div className="rounded-lg border border-border bg-muted/60 px-3 py-3 text-sm">
-            <p className="font-bold text-foreground">この端末の申請状態</p>
+            <p className="font-bold text-foreground">
+              {t("claimShield.redeem.deviceClaim")}
+            </p>
             <p className="mt-1 text-muted-foreground">
-              {claimStatusLabel(status)}
+              {claimStatusLabel(status, t)}
               {personalClaim.claim &&
                 (personalClaim.claim.hasLocalPayload
-                  ? " ・ private payload を確認しました。"
-                  : " ・ private payload を確認できません。")}
+                  ? t("claimShield.redeem.payloadAvailable")
+                  : t("claimShield.redeem.payloadUnavailable"))}
             </p>
           </div>
 
           {canRedeem ? (
             <div className="rounded-lg border border-primary/20 bg-primary/8 p-3">
               <p className="text-sm font-bold text-foreground">
-                承認済みのため、引換を記録できます。
+                {t("claimShield.redeem.readyTitle")}
               </p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                この操作は既存の private payload を witness
-                として使います。金額、店舗、レシート、salt
-                を再入力・表示しません。
+                {t("claimShield.redeem.readyBody")}
               </p>
               <Button
                 type="button"
@@ -151,39 +163,37 @@ export function ClaimRedemption({
                 onClick={() => void redeem()}
               >
                 {isBusy && <Loader2 className="animate-spin" />}
-                資格を引換済みに記録
+                {t("claimShield.redeem.redeem")}
               </Button>
             </div>
           ) : (
             <p className="rounded-lg border border-border px-3 py-3 text-xs leading-relaxed text-muted-foreground">
-              引換は、承認済みでこの端末に対応する private payload
-              がある申請だけで実行できます。
+              {t("claimShield.redeem.unavailable")}
             </p>
           )}
 
           {hasUnavailablePayload && (
             <p className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-xs leading-relaxed text-foreground">
-              このブラウザの private payload
-              を利用できません。バックアップから復元するまで引換できません。
+              {t("claimShield.redeem.recovery")}
             </p>
           )}
           {transaction.operation === "redeem" &&
             transaction.stage === "succeeded" && (
               <p className="rounded-lg border border-primary/25 bg-primary/8 px-3 py-2 text-sm text-foreground">
-                引換済みの資格記録を確認しました。資産送付や支払いは行いません。
+                {t("claimShield.redeem.succeeded")}
               </p>
             )}
           {walletGateRequested &&
             requiresWalletConnection &&
             !isWalletConnected && (
               <div className="rounded-lg border border-primary/20 bg-primary/8 p-3 text-sm text-foreground">
-                <p>引換には Lace Wallet への接続が必要です。</p>
+                <p>{t("claimShield.redeem.walletRequired")}</p>
                 <Button
                   type="button"
                   className="mt-3"
                   onClick={() => void connectWallet()}
                 >
-                  Lace Wallet を接続
+                  {t("claimShield.redeem.connectWallet")}
                 </Button>
               </div>
             )}

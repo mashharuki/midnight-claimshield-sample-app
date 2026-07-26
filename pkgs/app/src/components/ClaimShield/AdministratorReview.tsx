@@ -1,5 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ClaimStatus,
   type ClaimTransactionState,
@@ -89,18 +90,21 @@ export async function submitClaimReview({
 const reviewInputClassName =
   "w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/15";
 
-function claimStatusLabel(status: ClaimStatus): string {
+function claimStatusLabel(
+  status: ClaimStatus,
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
   switch (status) {
     case ClaimStatus.submitted:
-      return "未判断";
+      return t("claimShield.review.statusSubmitted");
     case ClaimStatus.approved:
-      return "承認済み";
+      return t("claimShield.review.statusApproved");
     case ClaimStatus.rejected:
-      return "取消済み";
+      return t("claimShield.review.statusRejected");
     case ClaimStatus.redeemed:
-      return "引換済み";
+      return t("claimShield.review.statusRedeemed");
     default:
-      return "申請なし";
+      return t("claimShield.review.statusNone");
   }
 }
 
@@ -113,6 +117,7 @@ function pseudonymLabel(claimantKey: Uint8Array): string {
 
 function safeAdministrationError(
   transaction: ClaimTransactionState,
+  t: ReturnType<typeof useTranslation>["t"],
 ): string | null {
   if (transaction.operation !== "close" && transaction.operation !== "review") {
     return null;
@@ -120,12 +125,12 @@ function safeAdministrationError(
   if (transaction.stage !== "failed" || !transaction.error) return null;
 
   if (transaction.error.kind === "business") {
-    return "公開状態が更新されている可能性があります。最新の policy と申請状態を確認してください。";
+    return t("claimShield.review.errorBusiness");
   }
   if (transaction.error.kind === "wallet") {
-    return "Lace Wallet の接続または署名を確認して、もう一度実行してください。";
+    return t("claimShield.review.errorWallet");
   }
-  return "管理操作を記録できませんでした。秘密の審査情報を表示せずに安全に再試行できます。";
+  return t("claimShield.review.errorUnknown");
 }
 
 function ReviewClaimRow({
@@ -141,6 +146,7 @@ function ReviewClaimRow({
   rejectClaim: (claimantKey: Uint8Array) => Promise<unknown>;
   requestWalletGate: () => void;
 }) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState("");
   const reviewable = isClaimReviewable(claim.status);
   const rejectionReady = canRejectPublicClaim({
@@ -170,7 +176,9 @@ function ReviewClaimRow({
             {pseudonymLabel(claim.claimantKey)}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            公開状態: {claimStatusLabel(claim.status)}
+            {t("claimShield.review.publicStatus", {
+              status: claimStatusLabel(claim.status, t),
+            })}
           </p>
         </div>
         <span
@@ -180,7 +188,9 @@ function ReviewClaimRow({
               : "bg-muted text-muted-foreground"
           }`}
         >
-          {reviewable ? "審査待ち" : "判断済み"}
+          {reviewable
+            ? t("claimShield.review.pending")
+            : t("claimShield.review.decided")}
         </span>
       </div>
 
@@ -194,7 +204,7 @@ function ReviewClaimRow({
               onClick={() => void review("approve")}
             >
               {isBusy && <Loader2 className="animate-spin" />}
-              承認を記録
+              {t("claimShield.review.approve")}
             </Button>
           </div>
           <div className="border-l-2 border-accent/50 pl-3">
@@ -202,7 +212,7 @@ function ReviewClaimRow({
               className="mb-1.5 block text-xs font-bold tracking-wide text-foreground"
               htmlFor={`review-reason-${pseudonymLabel(claim.claimantKey)}`}
             >
-              dApp 外で保管する取消理由
+              {t("claimShield.review.rejectionReason")}
             </label>
             <input
               id={`review-reason-${pseudonymLabel(claim.claimantKey)}`}
@@ -210,7 +220,7 @@ function ReviewClaimRow({
               value={reason}
               onChange={(event) => setReason(event.target.value)}
               autoComplete="off"
-              placeholder="取消を記録する前に理由を入力"
+              placeholder={t("claimShield.review.rejectionPlaceholder")}
               disabled={isBusy}
             />
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -222,11 +232,11 @@ function ReviewClaimRow({
                 onClick={() => void review("reject")}
               >
                 {isBusy && <Loader2 className="animate-spin" />}
-                取消を記録
+                {t("claimShield.review.reject")}
               </Button>
               {!reason.trim() && (
                 <span className="text-xs text-muted-foreground">
-                  理由を入力するまで取消は開始できません。
+                  {t("claimShield.review.reasonRequired")}
                 </span>
               )}
             </div>
@@ -234,7 +244,7 @@ function ReviewClaimRow({
         </div>
       ) : (
         <p className="mt-3 text-xs text-muted-foreground">
-          判断済みの申請は再度の承認・取消を実行できません。
+          {t("claimShield.review.decidedBody")}
         </p>
       )}
     </li>
@@ -264,9 +274,10 @@ export function AdministratorReview({
   approveClaim,
   rejectClaim,
 }: AdministratorReviewProps) {
+  const { t } = useTranslation();
   const [walletGateRequested, setWalletGateRequested] = useState(false);
   const isBusy = isClaimTransactionInFlight(transaction.stage);
-  const safeError = safeAdministrationError(transaction);
+  const safeError = safeAdministrationError(transaction, t);
 
   const close = async () => {
     setWalletGateRequested(true);
@@ -277,37 +288,35 @@ export function AdministratorReview({
     <section
       id="review"
       className="space-y-4"
-      aria-label="管理者の受付終了と審査"
+      aria-label={t("claimShield.review.ariaLabel")}
     >
       <Card className="border-foreground bg-card shadow-[8px_8px_0_#d6c9af]">
         <CardHeader className="border-b border-border/70 pb-4">
           <p className="text-xs font-bold tracking-[0.16em] text-primary uppercase">
-            Administrator review
+            {t("claimShield.review.eyebrow")}
           </p>
-          <CardTitle className="text-2xl">受付終了と審査記録</CardTitle>
+          <CardTitle className="text-2xl">
+            {t("claimShield.review.title")}
+          </CardTitle>
           <CardDescription>
-            policy 管理者だけが、受付状態と submitted claim
-            の状態を記録できます。
+            {t("claimShield.review.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 pt-5">
           <div className="rounded-lg border border-accent/30 bg-accent/8 px-3 py-3 text-xs leading-relaxed text-foreground">
-            <p className="font-bold">審査資料は dApp 外で確認します。</p>
-            <p className="mt-1">
-              この画面には疑似申請 ID
-              と公開状態だけを表示します。支出額、店舗、レシート、実ウォレットアドレス、秘密値は表示しません。
+            <p className="font-bold">
+              {t("claimShield.review.materialsTitle")}
             </p>
-            <p className="mt-1">
-              取消理由は ClaimShield へ送信・保存しません。組織の定めた安全な
-              dApp 外の経路で保管・連絡してください。
-            </p>
+            <p className="mt-1">{t("claimShield.review.materialsBody")}</p>
+            <p className="mt-1">{t("claimShield.review.reasonBody")}</p>
           </div>
 
           <div className="rounded-lg border border-border bg-muted/60 p-3">
-            <p className="text-sm font-bold text-foreground">新規申請の受付</p>
+            <p className="text-sm font-bold text-foreground">
+              {t("claimShield.review.intakeTitle")}
+            </p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              受付終了後も、すでに submitted の申請は審査でき、approved
-              の申請は引換できます。
+              {t("claimShield.review.intakeBody")}
             </p>
             <Button
               type="button"
@@ -317,22 +326,24 @@ export function AdministratorReview({
               onClick={() => void close()}
             >
               {isBusy && <Loader2 className="animate-spin" />}
-              {policyIsOpen ? "受付を終了して記録" : "受付は終了済み"}
+              {policyIsOpen
+                ? t("claimShield.review.close")
+                : t("claimShield.review.closed")}
             </Button>
           </div>
 
           <div>
             <div className="mb-2 flex items-baseline justify-between gap-3">
               <p className="text-sm font-bold text-foreground">
-                公開申請の審査
+                {t("claimShield.review.claimsTitle")}
               </p>
               <span className="text-xs text-muted-foreground">
-                {claims.length} public claim{claims.length === 1 ? "" : "s"}
+                {t("claimShield.review.claimCount", { count: claims.length })}
               </span>
             </div>
             {claims.length === 0 ? (
               <p className="rounded-lg border border-dashed border-border px-3 py-3 text-sm text-muted-foreground">
-                審査対象の公開申請はまだありません。
+                {t("claimShield.review.empty")}
               </p>
             ) : (
               <ul className="space-y-3">
@@ -354,13 +365,13 @@ export function AdministratorReview({
             requiresWalletConnection &&
             !isWalletConnected && (
               <div className="rounded-lg border border-primary/20 bg-primary/8 p-3 text-sm text-foreground">
-                <p>管理操作には Lace Wallet への接続が必要です。</p>
+                <p>{t("claimShield.review.walletRequired")}</p>
                 <Button
                   type="button"
                   className="mt-3"
                   onClick={() => void connectWallet()}
                 >
-                  Lace Wallet を接続
+                  {t("claimShield.review.connectWallet")}
                 </Button>
               </div>
             )}

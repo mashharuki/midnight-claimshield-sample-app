@@ -1,7 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ClaimStatus, type ClaimTransactionState } from "shared";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import i18n from "@/i18n";
 import { PrivateClaimSubmission } from "./PrivateClaimSubmission";
 
 const idleTransaction: ClaimTransactionState = {
@@ -11,6 +12,36 @@ const idleTransaction: ClaimTransactionState = {
 };
 
 describe("PrivateClaimSubmission", () => {
+  afterEach(async () => {
+    await i18n.changeLanguage("ja");
+  });
+
+  it("renders private input, privacy, and safe error guidance in English", async () => {
+    await i18n.changeLanguage("en");
+    const markup = renderToStaticMarkup(
+      createElement(PrivateClaimSubmission, {
+        minimumAmount: 500n,
+        maximumAmount: 1_500n,
+        policyIsOpen: true,
+        isWalletConnected: false,
+        requiresWalletConnection: false,
+        personalClaim: { claim: null, recoveryError: null },
+        transaction: {
+          operation: "submit",
+          stage: "failed",
+          error: { kind: "wallet", code: "networkMismatch" },
+        },
+        connectWallet: vi.fn(),
+        submitClaim: vi.fn(),
+      }),
+    );
+
+    expect(markup).toContain("Create a private claim");
+    expect(markup).toContain("Understand this before submitting");
+    expect(markup).toContain("Public visibility and limits after submission");
+    expect(markup).toContain("Check Lace Wallet and the selected network");
+  });
+
   it("renders a private-only form and persistent privacy limits without raw values", () => {
     const markup = renderToStaticMarkup(
       createElement(PrivateClaimSubmission, {

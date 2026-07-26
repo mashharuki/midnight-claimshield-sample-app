@@ -1,7 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ClaimStatus, type ClaimTransactionState } from "shared";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import i18n from "@/i18n";
 import {
   AdministratorReview,
   canRejectPublicClaim,
@@ -23,6 +24,35 @@ const submittedClaim = {
 } as const;
 
 describe("AdministratorReview", () => {
+  afterEach(async () => {
+    await i18n.changeLanguage("ja");
+  });
+
+  it("renders review, privacy, and safe error guidance in English", async () => {
+    await i18n.changeLanguage("en");
+    const markup = renderToStaticMarkup(
+      createElement(AdministratorReview, {
+        policyIsOpen: true,
+        claims: [submittedClaim],
+        isWalletConnected: true,
+        requiresWalletConnection: false,
+        transaction: {
+          operation: "review",
+          stage: "failed",
+          error: { kind: "business", code: "claimAlreadyDecided" },
+        },
+        connectWallet: vi.fn(),
+        closePolicy: vi.fn(),
+        approveClaim: vi.fn(),
+        rejectClaim: vi.fn(),
+      }),
+    );
+
+    expect(markup).toContain("Close intake and record reviews");
+    expect(markup).toContain("Review supporting material outside the dApp.");
+    expect(markup).toContain("The public state may have changed.");
+  });
+
   it("allows only submitted public claims to be reviewed and requires a local rejection reason", () => {
     expect(isClaimReviewable(ClaimStatus.submitted)).toBe(true);
     expect(isClaimReviewable(ClaimStatus.approved)).toBe(false);

@@ -1,15 +1,17 @@
-import { type ClaimShieldLedgerState, ClaimStatus, PolicyState } from "shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { type ClaimShieldLedgerState, ClaimStatus, PolicyState } from "shared";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import i18n from "@/i18n";
 import {
   isPolicyDraftDeployable,
   type PolicyDraft,
+  PublicPolicyDashboard,
   policyInputFromDraft,
   policyStateIsOpen,
   policyTimingAdvisory,
-  PublicPolicyDashboard,
   submitPolicyDraft,
+  TransactionProgress,
   toPublicPolicyView,
   validatePolicyDraft,
 } from "./PolicyWorkspace";
@@ -26,6 +28,23 @@ const validDraft: PolicyDraft = {
 };
 
 describe("ClaimShield policy workspace", () => {
+  afterEach(async () => {
+    await i18n.changeLanguage("ja");
+  });
+
+  it("renders transaction status in the selected English locale", async () => {
+    await i18n.changeLanguage("en");
+    const markup = renderToStaticMarkup(
+      createElement(TransactionProgress, {
+        operation: "submit",
+        stage: "succeeded",
+        error: null,
+      }),
+    );
+
+    expect(markup).toContain("Private claim recorded.");
+  });
+
   const invalidDraft: PolicyDraft = {
     ...validDraft,
     startAt: "2026-07-31T18:00",

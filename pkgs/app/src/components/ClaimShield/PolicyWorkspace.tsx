@@ -144,6 +144,27 @@ export function isPolicyDraftDeployable(draft: PolicyDraft): boolean {
   return Object.keys(validatePolicyDraft(draft)).length === 0;
 }
 
+function localizePolicyDraftError(
+  error: string | undefined,
+  t: ReturnType<typeof useTranslation>["t"],
+): string | undefined {
+  const key = {
+    "名称は UTF-8 で 1〜32 bytes にしてください。": "label",
+    "カテゴリは UTF-8 で 1〜32 bytes にしてください。": "category",
+    "開始日時を入力してください。": "startRequired",
+    "終了日時を入力してください。": "endRequired",
+    "開始日時は終了日時より前にしてください。": "startBeforeEnd",
+    "終了日時は開始日時より後にしてください。": "endAfterStart",
+    "0 以上の整数を入力してください。": "nonNegative",
+    "下限は上限以下にしてください。": "minimum",
+    "上限は下限以上にしてください。": "maximum",
+    "固定給付額は 1 以上にしてください。": "benefit",
+  }[error ?? ""];
+  return key
+    ? (t(`claimShield.policy.validation.${key}` as never) as string)
+    : error;
+}
+
 export function policyInputFromDraft(draft: PolicyDraft): PolicyInput {
   if (!isPolicyDraftDeployable(draft)) {
     throw new Error("Policy draft must be validated before conversion.");
@@ -224,15 +245,15 @@ export function toPublicPolicyView(
   };
 }
 
-function formatDateTime(value: bigint): string {
-  return new Intl.DateTimeFormat("ja-JP", {
+function formatDateTime(value: bigint, locale: string = "ja-JP"): string {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(Number(value) * 1_000));
 }
 
-function formatAmount(value: bigint): string {
-  return new Intl.NumberFormat("ja-JP").format(value);
+function formatAmount(value: bigint, locale: string = "ja-JP"): string {
+  return new Intl.NumberFormat(locale).format(value);
 }
 
 function Field({
@@ -261,7 +282,7 @@ function Field({
   );
 }
 
-function TransactionProgress({
+export function TransactionProgress({
   operation,
   stage,
   error,
@@ -270,16 +291,16 @@ function TransactionProgress({
   stage: ReturnType<typeof useClaimShield>["transaction"]["stage"];
   error: ReturnType<typeof useClaimShield>["transaction"]["error"];
 }) {
+  const { t } = useTranslation();
   if (stage === "idle") return null;
   const messages = {
-    preparing: "トランザクションを準備中です。",
-    proving: "秘密情報を公開せず、証明を生成中です。",
-    awaitingSignature: "Lace Wallet で署名を確認してください。",
-    submitting: "Midnight ネットワークへ送信中です。",
-    confirming: "Indexer で公開 policy を確認中です。",
-    succeeded: "公開 policy を確認しました。",
-    failed:
-      "操作を完了できませんでした。入力と接続を確認して再試行してください。",
+    preparing: t("claimShield.transaction.preparing"),
+    proving: t("claimShield.transaction.proving"),
+    awaitingSignature: t("claimShield.transaction.awaitingSignature"),
+    submitting: t("claimShield.transaction.submitting"),
+    confirming: t("claimShield.transaction.confirming"),
+    succeeded: t("claimShield.transaction.succeeded"),
+    failed: t("claimShield.transaction.failed"),
     idle: "",
   } as const;
   const isBusy = isClaimTransactionInFlight(stage);
@@ -287,30 +308,29 @@ function TransactionProgress({
     if (operation === "submit") {
       return {
         ...messages,
-        confirming: "Indexer で公開申請状態を確認中です。",
-        succeeded: "秘密申請を記録しました。公開画面には明細を表示しません。",
+        confirming: t("claimShield.transaction.submitConfirming"),
+        succeeded: t("claimShield.transaction.submitSucceeded"),
       }[stage];
     }
     if (operation === "close") {
       return {
         ...messages,
-        confirming: "Indexer で受付終了の公開状態を確認中です。",
-        succeeded: "新規申請の受付終了を記録しました。",
+        confirming: t("claimShield.transaction.closeConfirming"),
+        succeeded: t("claimShield.transaction.closeSucceeded"),
       }[stage];
     }
     if (operation === "review") {
       return {
         ...messages,
-        confirming: "Indexer で審査結果の公開状態を確認中です。",
-        succeeded:
-          "審査結果を記録しました。取消理由は ClaimShield に保存していません。",
+        confirming: t("claimShield.transaction.reviewConfirming"),
+        succeeded: t("claimShield.transaction.reviewSucceeded"),
       }[stage];
     }
     if (operation === "redeem") {
       return {
         ...messages,
-        confirming: "Indexer で引換済みの資格記録を確認中です。",
-        succeeded: "一回限りの資格記録を完了しました。資産送付は行いません。",
+        confirming: t("claimShield.transaction.redeemConfirming"),
+        succeeded: t("claimShield.transaction.redeemSucceeded"),
       }[stage];
     }
     return messages[stage];
@@ -329,7 +349,7 @@ function TransactionProgress({
       {isBusy && <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />}
       <span>
         {message}
-        {error && " 安全に再試行できます。"}
+        {error && t("claimShield.transaction.retry")}
       </span>
     </div>
   );
@@ -342,21 +362,35 @@ export function PublicPolicyDashboard({
   policy: PublicPolicyView;
   contractAddress: string;
 }) {
+  const { t, i18n } = useTranslation();
   const advisory = policyTimingAdvisory(policy.startAt, policy.endAt);
   const statistics = [
-    ["申請数", formatAmount(policy.submittedCount)],
-    ["承認数", formatAmount(policy.approvedCount)],
-    ["固定給付予定総額", formatAmount(policy.plannedBenefitTotal)],
+    [
+      t("claimShield.policy.submittedCount"),
+      formatAmount(policy.submittedCount, i18n.language),
+    ],
+    [
+      t("claimShield.policy.approvedCount"),
+      formatAmount(policy.approvedCount, i18n.language),
+    ],
+    [
+      t("claimShield.policy.plannedBenefitTotal"),
+      formatAmount(policy.plannedBenefitTotal, i18n.language),
+    ],
   ] as const;
 
   return (
-    <section id="policy" className="space-y-4" aria-label="公開 policy">
+    <section
+      id="policy"
+      className="space-y-4"
+      aria-label={t("claimShield.policy.ariaLabel")}
+    >
       <Card className="border-primary/20 bg-card shadow-[8px_8px_0_#d6c9af]">
         <CardHeader className="gap-3 border-b border-border/70 pb-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-bold tracking-[0.16em] text-primary uppercase">
-                Public policy
+                {t("claimShield.policy.publicPolicy")}
               </p>
               <CardTitle className="mt-1 text-2xl font-bold">
                 {policy.label}
@@ -373,8 +407,8 @@ export function PublicPolicyDashboard({
               }`}
             >
               {policy.isOpen
-                ? "オンチェーン: 受付中"
-                : "オンチェーン: 受付終了"}
+                ? t("claimShield.policy.open")
+                : t("claimShield.policy.closed")}
             </span>
           </div>
         </CardHeader>
@@ -382,39 +416,48 @@ export function PublicPolicyDashboard({
           <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
             <div className="sm:col-span-2">
               <dt className="text-xs text-muted-foreground">
-                公開 policy contract address
+                {t("claimShield.policy.contractAddress")}
               </dt>
               <dd className="mt-1 break-all rounded-md bg-muted px-2 py-1 font-mono text-xs">
                 {contractAddress}
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">公開受付期間</dt>
+              <dt className="text-xs text-muted-foreground">
+                {t("claimShield.policy.intakePeriod")}
+              </dt>
               <dd className="mt-1 font-medium">
-                {formatDateTime(policy.startAt)} 〜{" "}
-                {formatDateTime(policy.endAt)}
+                {formatDateTime(policy.startAt, i18n.language)} 〜{" "}
+                {formatDateTime(policy.endAt, i18n.language)}
               </dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">
-                対象支出額（公開条件）
+                {t("claimShield.policy.amountRange")}
               </dt>
               <dd className="mt-1 font-medium">
-                {formatAmount(policy.minimumAmount)} 〜{" "}
-                {formatAmount(policy.maximumAmount)}
+                {formatAmount(policy.minimumAmount, i18n.language)} 〜{" "}
+                {formatAmount(policy.maximumAmount, i18n.language)}
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">固定給付額</dt>
+              <dt className="text-xs text-muted-foreground">
+                {t("claimShield.policy.fixedBenefit")}
+              </dt>
               <dd className="mt-1 font-medium">
-                {formatAmount(policy.fixedBenefit)}
+                {formatAmount(policy.fixedBenefit, i18n.language)}
               </dd>
             </div>
           </dl>
 
           {advisory && (
             <p className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-xs leading-relaxed text-foreground">
-              {advisory} 実際の受付可否は、上のオンチェーン状態で判定されます。
+              {i18n.language === "en" && advisory
+                ? policy.startAt > BigInt(Math.floor(Date.now() / 1_000))
+                  ? t("claimShield.policy.beforeStart")
+                  : t("claimShield.policy.afterEnd")
+                : advisory}{" "}
+              {t("claimShield.policy.advisorySuffix")}
             </p>
           )}
         </CardContent>
@@ -434,8 +477,7 @@ export function PublicPolicyDashboard({
       </div>
 
       <p className="rounded-lg border border-border bg-muted/60 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-        この画面は policy
-        条件、状態、件数、集計のみを公開します。支出額、店舗名、レシート内容、ウォレットアドレス、秘密値は表示しません。
+        {t("claimShield.policy.publicBoundary")}
       </p>
     </section>
   );
@@ -485,9 +527,7 @@ export function PolicyWorkspace() {
   const handleOpenPolicy = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!policyAddress.trim()) {
-      setAddressGuidance(
-        "公開 policy の contract address を入力してください。",
-      );
+      setAddressGuidance(t("claimShield.policy.addressRequired"));
       return;
     }
     setAddressGuidance(null);
@@ -558,8 +598,7 @@ export function PolicyWorkspace() {
               />
               {readError && readError.kind !== "privateState" && (
                 <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                  公開状態を取得できませんでした。ネットワークと Lace Wallet
-                  の接続を確認して再試行してください。
+                  {t("claimShield.policy.readError")}
                 </p>
               )}
             </div>
@@ -602,11 +641,13 @@ export function PolicyWorkspace() {
             <Card className="border-foreground bg-card shadow-[8px_8px_0_#d6c9af]">
               <CardHeader className="border-b border-border/70 pb-4">
                 <p className="text-xs font-bold tracking-[0.16em] text-primary uppercase">
-                  Administrator setup
+                  {t("claimShield.workspace.administratorSetup")}
                 </p>
-                <CardTitle className="text-2xl">新しい policy を公開</CardTitle>
+                <CardTitle className="text-2xl">
+                  {t("claimShield.policy.createTitle")}
+                </CardTitle>
                 <CardDescription>
-                  名前、条件、集計は公開されます。申請者の明細やウォレットアドレスは公開しません。
+                  {t("claimShield.policy.createDescription")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-5">
@@ -614,8 +655,12 @@ export function PolicyWorkspace() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field
                       inputId="policy-label"
-                      label="policy 名"
-                      error={hasSubmitted ? errors.label : undefined}
+                      label={t("claimShield.policy.label")}
+                      error={
+                        hasSubmitted
+                          ? localizePolicyDraftError(errors.label, t)
+                          : undefined
+                      }
                     >
                       <input
                         id="policy-label"
@@ -625,13 +670,17 @@ export function PolicyWorkspace() {
                           updateDraft("label", event.target.value)
                         }
                         aria-invalid={Boolean(hasSubmitted && errors.label)}
-                        placeholder="例: Lunch support"
+                        placeholder={t("claimShield.policy.labelPlaceholder")}
                       />
                     </Field>
                     <Field
                       inputId="policy-category"
-                      label="カテゴリ"
-                      error={hasSubmitted ? errors.category : undefined}
+                      label={t("claimShield.policy.category")}
+                      error={
+                        hasSubmitted
+                          ? localizePolicyDraftError(errors.category, t)
+                          : undefined
+                      }
                     >
                       <input
                         id="policy-category"
@@ -641,7 +690,9 @@ export function PolicyWorkspace() {
                           updateDraft("category", event.target.value)
                         }
                         aria-invalid={Boolean(hasSubmitted && errors.category)}
-                        placeholder="例: Wellbeing"
+                        placeholder={t(
+                          "claimShield.policy.categoryPlaceholder",
+                        )}
                       />
                     </Field>
                   </div>
@@ -649,8 +700,12 @@ export function PolicyWorkspace() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field
                       inputId="policy-start-at"
-                      label="受付開始（端末のローカル時刻）"
-                      error={hasSubmitted ? errors.startAt : undefined}
+                      label={t("claimShield.policy.startAt")}
+                      error={
+                        hasSubmitted
+                          ? localizePolicyDraftError(errors.startAt, t)
+                          : undefined
+                      }
                     >
                       <input
                         id="policy-start-at"
@@ -665,8 +720,12 @@ export function PolicyWorkspace() {
                     </Field>
                     <Field
                       inputId="policy-end-at"
-                      label="受付終了（端末のローカル時刻）"
-                      error={hasSubmitted ? errors.endAt : undefined}
+                      label={t("claimShield.policy.endAt")}
+                      error={
+                        hasSubmitted
+                          ? localizePolicyDraftError(errors.endAt, t)
+                          : undefined
+                      }
                     >
                       <input
                         id="policy-end-at"
@@ -684,8 +743,12 @@ export function PolicyWorkspace() {
                   <div className="grid gap-4 sm:grid-cols-3">
                     <Field
                       inputId="policy-minimum-amount"
-                      label="支出額の下限"
-                      error={hasSubmitted ? errors.minimumAmount : undefined}
+                      label={t("claimShield.policy.minimumAmount")}
+                      error={
+                        hasSubmitted
+                          ? localizePolicyDraftError(errors.minimumAmount, t)
+                          : undefined
+                      }
                     >
                       <input
                         id="policy-minimum-amount"
@@ -703,8 +766,12 @@ export function PolicyWorkspace() {
                     </Field>
                     <Field
                       inputId="policy-maximum-amount"
-                      label="支出額の上限"
-                      error={hasSubmitted ? errors.maximumAmount : undefined}
+                      label={t("claimShield.policy.maximumAmount")}
+                      error={
+                        hasSubmitted
+                          ? localizePolicyDraftError(errors.maximumAmount, t)
+                          : undefined
+                      }
                     >
                       <input
                         id="policy-maximum-amount"
@@ -722,8 +789,12 @@ export function PolicyWorkspace() {
                     </Field>
                     <Field
                       inputId="policy-fixed-benefit"
-                      label="固定給付額"
-                      error={hasSubmitted ? errors.fixedBenefit : undefined}
+                      label={t("claimShield.policy.fixedBenefit")}
+                      error={
+                        hasSubmitted
+                          ? localizePolicyDraftError(errors.fixedBenefit, t)
+                          : undefined
+                      }
                     >
                       <input
                         id="policy-fixed-benefit"
@@ -742,8 +813,7 @@ export function PolicyWorkspace() {
                   </div>
 
                   <div className="rounded-lg border border-border bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-                    受付期間は公開の運用情報です。端末時刻による注意は表示しますが、オンチェーンでの受付可否は
-                    policy state が決めます。
+                    {t("claimShield.policy.timingNote")}
                   </div>
 
                   <Button
@@ -754,8 +824,8 @@ export function PolicyWorkspace() {
                   >
                     {isBusy && <Loader2 className="animate-spin" />}
                     {isWalletConnected
-                      ? "公開して policy を作成"
-                      : "接続して policy を作成"}
+                      ? t("claimShield.policy.create")
+                      : t("claimShield.policy.connectAndCreate")}
                   </Button>
                 </form>
                 <TransactionProgress
@@ -767,16 +837,13 @@ export function PolicyWorkspace() {
                   requiresWalletConnection &&
                   !isWalletConnected && (
                     <div className="mt-4 rounded-lg border border-primary/20 bg-primary/8 p-3 text-sm text-foreground">
-                      <p>
-                        続けるには Lace Wallet
-                        への接続が必要です。接続後、操作をもう一度実行してください。
-                      </p>
+                      <p>{t("claimShield.policy.walletRequired")}</p>
                       <Button
                         type="button"
                         className="mt-3"
                         onClick={() => void connectWallet()}
                       >
-                        Lace Wallet を接続
+                        {t("claimShield.policy.connectWallet")}
                       </Button>
                     </div>
                   )}
@@ -787,11 +854,11 @@ export function PolicyWorkspace() {
               <Card className="border-border bg-card/85">
                 <CardHeader>
                   <p className="text-xs font-bold tracking-[0.16em] text-primary uppercase">
-                    Public view
+                    {t("claimShield.workspace.publicView")}
                   </p>
-                  <CardTitle>既存 policy を開く</CardTitle>
+                  <CardTitle>{t("claimShield.policy.openTitle")}</CardTitle>
                   <CardDescription>
-                    管理者から共有された contract address を入力します。
+                    {t("claimShield.policy.openDescription")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -802,7 +869,7 @@ export function PolicyWorkspace() {
                   >
                     <Field
                       inputId="policy-contract-address"
-                      label="contract address"
+                      label={t("claimShield.policy.address")}
                       error={addressGuidance ?? undefined}
                     >
                       <input
@@ -822,7 +889,7 @@ export function PolicyWorkspace() {
                       className="w-full"
                       disabled={isBusy}
                     >
-                      公開 policy を表示
+                      {t("claimShield.policy.show")}
                     </Button>
                   </form>
                 </CardContent>
@@ -830,24 +897,19 @@ export function PolicyWorkspace() {
 
               <Card className="border-accent/25 bg-accent/7">
                 <CardHeader>
-                  <CardTitle className="text-base">公開境界</CardTitle>
+                  <CardTitle className="text-base">
+                    {t("claimShield.policy.boundaryTitle")}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-xs leading-relaxed text-muted-foreground">
-                  <p>
-                    公開: policy
-                    条件、受付状態、申請数、承認数、固定給付予定総額。
-                  </p>
-                  <p>
-                    非公開:
-                    支出額、店舗名、レシート内容、秘密値、実ウォレットアドレス。
-                  </p>
+                  <p>{t("claimShield.policy.boundaryPublic")}</p>
+                  <p>{t("claimShield.policy.boundaryPrivate")}</p>
                 </CardContent>
               </Card>
 
               {readError && (
                 <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                  公開状態を取得できませんでした。ネットワークと Lace Wallet
-                  の接続を確認して再試行してください。
+                  {t("claimShield.policy.readError")}
                 </p>
               )}
             </aside>
