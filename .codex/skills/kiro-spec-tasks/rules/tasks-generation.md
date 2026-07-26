@@ -109,6 +109,11 @@ Focus on capabilities and outcomes, not code structure.
 - User testing
 - Marketing/business activities
 
+**Requirements-driven reproducibility exception**:
+- A README, Dev Container, or host-environment task is permitted when an approved acceptance criterion explicitly requires reproducible setup, build, run, test, architecture, or runtime-prerequisite guidance.
+- Treat that work as a technical setup and verification artifact, not general documentation. The task must include the associated configuration or executable verification path and map only to the explicit numeric requirement IDs that mandate it.
+- Do not use this exception for explanatory, marketing, or otherwise optional prose.
+
 ## Task Plan Review Gate
 
 Before writing `tasks.md`, review the draft task plan and repair local issues until the plan passes or a true spec gap is discovered.
