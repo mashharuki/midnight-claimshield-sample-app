@@ -62,14 +62,14 @@
   - _Boundary: Contract Build and Generated Assets_
 
 - [ ] 4. SDK と React 状態モデルを段階的に統合する
-- [ ] 4.1 ClaimShield の共有 domain、ledger、provider、error 契約を追加する
+- [x] 4.1 ClaimShield の共有 domain、ledger、provider、error 契約を追加する
   - policy、claim、公開 ledger、transaction stage、識別可能な UI error の型を shared package に定義する。
   - app 層が公開値と秘密値を同じ型に混在させない境界を確立する。
   - contract と app が同じ ClaimShield 型を import して build できる状態が完了条件である。
   - _Requirements: 1.1, 1.3, 3.2, 3.3, 5.1, 6.1, 7.1, 8.2, 8.3_
   - _Boundary: Shared ClaimShield Types_
 
-- [ ] 4.2 provider bridge で wallet、prover、Indexer、private state を接続する
+- [x] 4.2 provider bridge で wallet、prover、Indexer、private state を接続する
   - 既存 Lace bridge と 6 providers を ClaimShield 専用に構成する。
   - private-state namespace とローカル contract address を network と contract address の組で分離する。
   - network または contract address が異なる場合に private state を再利用しない状態が完了条件である。
